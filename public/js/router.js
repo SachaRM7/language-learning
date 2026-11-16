@@ -50,7 +50,10 @@ function dispatch(hash) {
 
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (document.startViewTransition && !reduce && _hasRendered) {
-    document.startViewTransition(async () => { await run(); });
+    const t = document.startViewTransition(async () => { await run(); });
+    // Une navigation rapide interrompt la transition précédente : ce n'est pas une erreur
+    t.ready.catch(() => {});
+    t.finished.catch(() => {});
   } else {
     const app = document.getElementById('app');
     if (app && _hasRendered) {
