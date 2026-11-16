@@ -1,24 +1,25 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "helloarabic",
+  "account_id": "5f896b4f6ccbd8f3ae702693ac9a2b3e",
   "main": "worker/index.js",
+  "workers_dev": true,
+  "preview_urls": false,
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat"],
 
-  // Frontend statique (vanilla ES modules, sans build) servi directement par Cloudflare.
-  // Seules les routes /api/* réveillent le Worker.
-  "assets": {
-    "directory": "./public",
-    "binding": "ASSETS",
-    "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"]
+  // Le frontend (public/) est embarqué dans le Worker au moment du build (scripts/embed-assets.mjs) :
+  // pas d'étape d'upload d'assets séparée, déploiement en une commande.
+  "build": {
+    "command": "node scripts/embed-assets.mjs",
+    "watch_dir": "public"
   },
 
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "helloarabic",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "ff9f1ec9-8516-4e7d-97bc-174953af1a1a",
       "migrations_dir": "migrations"
     }
   ],

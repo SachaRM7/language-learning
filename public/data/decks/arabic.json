@@ -8022,7 +8022,7 @@
           "en": "red",
           "translit": "ahmar",
           "emoji": "🔴",
-          "image": "images/couleurs/rouge.png",
+          "image": "images/couleurs/rouge.webp",
           "audio": null,
           "tags": []
         },
@@ -8034,7 +8034,7 @@
           "en": "blue",
           "translit": "azraq",
           "emoji": "🔵",
-          "image": "images/couleurs/bleu.png",
+          "image": "images/couleurs/bleu.webp",
           "audio": null,
           "tags": []
         },
@@ -8046,7 +8046,7 @@
           "en": "green",
           "translit": "akhdhar",
           "emoji": "🟢",
-          "image": "images/couleurs/vert.png",
+          "image": "images/couleurs/vert.webp",
           "audio": null,
           "tags": []
         },
@@ -8058,7 +8058,7 @@
           "en": "yellow",
           "translit": "asfar",
           "emoji": "🟡",
-          "image": "images/couleurs/jaune.png",
+          "image": "images/couleurs/jaune.webp",
           "audio": null,
           "tags": []
         },
@@ -8070,7 +8070,7 @@
           "en": "black",
           "translit": "aswad",
           "emoji": "⚫",
-          "image": "images/couleurs/noir.png",
+          "image": "images/couleurs/noir.webp",
           "audio": null,
           "tags": []
         },
@@ -8082,7 +8082,7 @@
           "en": "white",
           "translit": "abyad",
           "emoji": "⚪",
-          "image": "images/couleurs/blanc.png",
+          "image": "images/couleurs/blanc.webp",
           "audio": null,
           "tags": []
         },
@@ -8094,7 +8094,7 @@
           "en": "orange",
           "translit": "burtuqāli",
           "emoji": "🟠",
-          "image": "images/couleurs/orange.png",
+          "image": "images/couleurs/orange.webp",
           "audio": null,
           "tags": []
         },
@@ -8106,7 +8106,7 @@
           "en": "pink",
           "translit": "wardi",
           "emoji": "🩷",
-          "image": "images/couleurs/rose.png",
+          "image": "images/couleurs/rose.webp",
           "audio": null,
           "tags": []
         },
@@ -8118,7 +8118,7 @@
           "en": "brown",
           "translit": "bunni",
           "emoji": "🟤",
-          "image": "images/couleurs/marron.png",
+          "image": "images/couleurs/marron.webp",
           "audio": null,
           "tags": []
         },
@@ -8130,7 +8130,7 @@
           "en": "purple",
           "translit": "banafsaji",
           "emoji": "🟣",
-          "image": "images/couleurs/mauve.png",
+          "image": "images/couleurs/mauve.webp",
           "audio": null,
           "tags": []
         }
@@ -8232,7 +8232,7 @@
           "en": "circle",
           "translit": "dāira",
           "emoji": "⭕",
-          "image": "images/formes/rond.png",
+          "image": "images/formes/rond.webp",
           "audio": null,
           "tags": []
         },
@@ -8244,7 +8244,7 @@
           "en": "square",
           "translit": "murabba'",
           "emoji": "🟦",
-          "image": "images/formes/carré.png",
+          "image": "images/formes/carre.webp",
           "audio": null,
           "tags": []
         },
@@ -8256,7 +8256,7 @@
           "en": "triangle",
           "translit": "muthallath",
           "emoji": "🔺",
-          "image": "images/formes/triangle.png",
+          "image": "images/formes/triangle.webp",
           "audio": null,
           "tags": []
         },
@@ -8268,7 +8268,7 @@
           "en": "rectangle",
           "translit": "mustatīl",
           "emoji": "▬",
-          "image": "images/formes/rectangle.png",
+          "image": "images/formes/rectangle.webp",
           "audio": null,
           "tags": []
         },
@@ -8280,7 +8280,7 @@
           "en": "star",
           "translit": "najma",
           "emoji": "⭐",
-          "image": "images/formes/étoile.png",
+          "image": "images/formes/etoile.webp",
           "audio": null,
           "tags": []
         },
@@ -8292,7 +8292,7 @@
           "en": "diamond",
           "translit": "mu'ayyan",
           "emoji": "🔷",
-          "image": "images/formes/losange.png",
+          "image": "images/formes/losange.webp",
           "audio": null,
           "tags": []
         },
@@ -8304,7 +8304,7 @@
           "en": "oval",
           "translit": "baydāwī",
           "emoji": "⬭",
-          "image": "images/formes/ovale.png",
+          "image": "images/formes/ovale.webp",
           "audio": null,
           "tags": []
         },
@@ -8316,7 +8316,7 @@
           "en": "heart",
           "translit": "qalb",
           "emoji": "❤️",
-          "image": "images/formes/coeur.png",
+          "image": "images/formes/coeur.webp",
           "audio": null,
           "tags": []
         }
@@ -8664,7 +8664,7 @@
           "en": "one",
           "translit": "wāhid",
           "emoji": "1️⃣",
-          "image": "images/nombres/un.png",
+          "image": "images/nombres/un.webp",
           "audio": null,
           "tags": []
         },
@@ -8676,7 +8676,7 @@
           "en": "two",
           "translit": "ithnān",
           "emoji": "2️⃣",
-          "image": "images/nombres/deux.png",
+          "image": "images/nombres/deux.webp",
           "audio": null,
           "tags": []
         },
@@ -8688,7 +8688,7 @@
           "en": "three",
           "translit": "thalātha",
           "emoji": "3️⃣",
-          "image": "images/nombres/trois.png",
+          "image": "images/nombres/trois.webp",
           "audio": null,
           "tags": []
         },
@@ -8700,7 +8700,7 @@
           "en": "four",
           "translit": "arba'a",
           "emoji": "4️⃣",
-          "image": "images/nombres/quatre.png",
+          "image": "images/nombres/quatre.webp",
           "audio": null,
           "tags": []
         },
@@ -8712,7 +8712,7 @@
           "en": "five",
           "translit": "khamsa",
           "emoji": "5️⃣",
-          "image": "images/nombres/cinq.png",
+          "image": "images/nombres/cinq.webp",
           "audio": null,
           "tags": []
         },
@@ -8724,7 +8724,7 @@
           "en": "six",
           "translit": "sitta",
           "emoji": "6️⃣",
-          "image": "images/nombres/six.png",
+          "image": "images/nombres/six.webp",
           "audio": null,
           "tags": []
         },
@@ -8736,7 +8736,7 @@
           "en": "seven",
           "translit": "sab'a",
           "emoji": "7️⃣",
-          "image": "images/nombres/sept.png",
+          "image": "images/nombres/sept.webp",
           "audio": null,
           "tags": []
         },
@@ -8748,7 +8748,7 @@
           "en": "eight",
           "translit": "thamāniya",
           "emoji": "8️⃣",
-          "image": "images/nombres/huit.png",
+          "image": "images/nombres/huit.webp",
           "audio": null,
           "tags": []
         },
@@ -8760,7 +8760,7 @@
           "en": "nine",
           "translit": "tis'a",
           "emoji": "9️⃣",
-          "image": "images/nombres/neuf.png",
+          "image": "images/nombres/neuf.webp",
           "audio": null,
           "tags": []
         },
@@ -8772,7 +8772,7 @@
           "en": "ten",
           "translit": "'ashara",
           "emoji": "🔟",
-          "image": "images/nombres/dix.png",
+          "image": "images/nombres/dix.webp",
           "audio": null,
           "tags": []
         }

@@ -19,7 +19,8 @@ migrations/        schéma D1
 wrangler.jsonc     configuration Cloudflare
 ```
 
-- **Hébergement** : Cloudflare Workers (static assets). Seules les routes `/api/*` réveillent le Worker.
+- **Hébergement** : Cloudflare Workers — https://helloarabic.sacha4dev.workers.dev. Le frontend (`public/`, ~1,3 Mo) est
+  embarqué dans le Worker au build (`scripts/embed-assets.mjs`) et servi avec ETag : déploiement en une commande.
 - **Données** : *local-first*. Tout est dans IndexedDB et l'app marche hors-ligne ; `sync.js` envoie les
   modifications à D1 en arrière-plan et récupère celles des autres appareils.
 - **Connexion** : Cloudflare Access (code envoyé par e-mail) protège tout le domaine. L'app est privée,
@@ -39,8 +40,10 @@ Pour tester le tuteur en local : créer `.dev.vars` avec `ANTHROPIC_API_KEY=...`
 
 ## Déploiement
 
-1. `npx wrangler d1 create helloarabic`, puis reporter le `database_id` dans `wrangler.jsonc`.
-2. `npm run db:migrate`, puis `npm run deploy`.
+La base D1 (`helloarabic`) existe déjà et est référencée dans `wrangler.jsonc`.
+
+1. `npm run db:migrate` (si une nouvelle migration a été ajoutée), puis `npm run deploy`.
+2. Pour un nouveau compte : `npx wrangler d1 create helloarabic` et reporter le `database_id`.
 3. `npx wrangler secret put ANTHROPIC_API_KEY`
 4. **Cloudflare Access** (Zero Trust → Access → Applications → *Self-hosted*) :
    - domaine `helloarabic.<sous-domaine>.workers.dev` ;

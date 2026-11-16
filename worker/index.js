@@ -1,15 +1,16 @@
 // worker/index.js — Point d'entrée du Worker HelloArabic.
-// Les fichiers statiques (public/) sont servis par Cloudflare sans passer ici ; seules les routes /api/* arrivent.
+// Sert le frontend embarqué (public/) et l'API /api/*.
 
 import { authenticate } from './auth.js';
 import { handleSync } from './sync.js';
 import { handleTutor } from './tutor.js';
 import { json } from './http.js';
+import { serveStatic } from './static.js';
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
+    if (!url.pathname.startsWith('/api/')) return serveStatic(request);
 
     try {
       const user = await authenticate(request, env);
