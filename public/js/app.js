@@ -3,7 +3,8 @@
 import './icons.js';
 import { db } from './db.js';
 import { applyTheme, bindHeaderScroll } from './ui.js';
-import { initSync } from './sync.js';
+import { initSync, accountReady } from './sync.js';
+import { refreshLemmaFr } from './quran.js';
 import { store } from './store.js';
 import { route, startRouter, navigate, getCurrentRoute } from './router.js';
 
@@ -129,6 +130,13 @@ async function init() {
 
   // Synchronisation en arrière-plan (Cloudflare D1). Sans Worker, l'app reste 100 % locale.
   initSync();
+  // Sens français du lexique coranique (mis à jour en tâche de fond côté serveur)
+  accountReady.then(async () => {
+    if (await refreshLemmaFr()) window.dispatchEvent(new CustomEvent('ha:remote-changes'));
+  });
+  setInterval(async () => {
+    if (document.visibilityState === 'visible' && await refreshLemmaFr()) window.dispatchEvent(new CustomEvent('ha:remote-changes'));
+  }, 5 * 60e3);
   window.addEventListener('ha:remote-changes', () => {
     applyTheme(store.get('preferences')?.theme || 'system');
     const path = getCurrentRoute().path;

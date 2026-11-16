@@ -33,5 +33,8 @@
   },
 
   // Secret à définir : npx wrangler secret put ANTHROPIC_API_KEY
+  // Traduction du lexique coranique en tâche de fond (s'arrête d'elle-même une fois tout traduit)
+  "triggers": { "crons": ["*/5 * * * *"] },
+
   "observability": { "enabled": true }
 }

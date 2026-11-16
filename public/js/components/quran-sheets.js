@@ -58,7 +58,7 @@ export async function openWordSheet({ surahId, verse, j }) {
           <button class="audio-btn" id="qs-audio" aria-label="Écouter le mot">${icon('volume-2')}</button>
         </div>
         <div class="q-sheet__tr">${escapeHtml(w.tr || '')}</div>
-        <div class="q-sheet__mean">${escapeHtml(fr || w.en)}${fr ? '' : ' <i class="q-en">EN</i>'}</div>
+        <div class="q-sheet__mean">${escapeHtml(fr || (lm.lang === 'fr' ? lm.text : w.en))}${fr || lm.lang === 'fr' ? '' : ' <i class="q-en">EN</i>'}</div>
         <div class="q-sheet__ref">Sourate ${surahId}, verset ${verse.n}</div>
 
         <div class="q-sheet__grid">

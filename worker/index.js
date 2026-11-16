@@ -5,10 +5,18 @@ import { authenticate } from './auth.js';
 import { handleSync } from './sync.js';
 import { handleTutor } from './tutor.js';
 import { handleQuranFr, handleQuranSurah } from './quran.js';
+import { handleLemmasFr, translatePendingLemmas } from './lexicon.js';
 import { json } from './http.js';
 import { serveStatic } from './static.js';
 
 export default {
+  // Tâche planifiée : traduit en français le lexique coranique restant (no-op une fois terminé)
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(translatePendingLemmas(env)
+      .then(r => console.log('lexique', JSON.stringify(r)))
+      .catch(err => console.error('lexique : échec, nouvel essai au prochain passage', err?.message)));
+  },
+
   async fetch(request, env) {
     const url = new URL(request.url);
     if (!url.pathname.startsWith('/api/')) return serveStatic(request);
@@ -25,6 +33,8 @@ export default {
           return await handleSync(request, env, user);
         case 'POST /api/tutor':
           return await handleTutor(request, env, user);
+        case 'GET /api/quran/lemmas':
+          return await handleLemmasFr(request, env);
         case 'GET /api/quran/surah':
           return await handleQuranSurah(request, env);
         case 'GET /api/quran/fr':

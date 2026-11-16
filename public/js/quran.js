@@ -74,7 +74,50 @@ export async function fetchFr(n, { generate = true } = {}) {
 }
 
 /** Sens d'un lemme : français si une sourate l'a déjà fourni, sinon anglais. */
+// ── Lexique complet en français (traduit côté serveur par la tâche planifiée) ──
+
+const LEMMA_FR_CACHE = 'ha-qlemfr';
+let _lemmaFr = null;
+
+export function lemmaFrMap() {
+  if (!_lemmaFr) {
+    try { _lemmaFr = JSON.parse(localStorage.getItem(LEMMA_FR_CACHE))?.fr || {}; } catch { _lemmaFr = {}; }
+  }
+  return _lemmaFr;
+}
+
+/**
+ * Récupère les sens français du lexique. Tant que la traduction serveur n'est pas finie,
+ * on revérifie toutes les 5 minutes ; ensuite une fois par jour. Renvoie le nombre de nouveautés.
+ */
+export async function refreshLemmaFr() {
+  let cache = null;
+  try { cache = JSON.parse(localStorage.getItem(LEMMA_FR_CACHE)); } catch { /* vide */ }
+  const age = Date.now() - (cache?.at || 0);
+  const complete = cache && cache.total && cache.done >= cache.total;
+  if (cache && age < (complete ? 24 * 3600e3 : 5 * 60e3)) return 0;
+  if (!store.get('account')) return 0;
+  try {
+    const res = await fetch('api/quran/lemmas', { credentials: 'same-origin' });
+    if (!res.ok) return 0;
+    const body = await res.json();
+    const before = Object.keys(lemmaFrMap()).length;
+    _lemmaFr = body.fr || {};
+    try { localStorage.setItem(LEMMA_FR_CACHE, JSON.stringify({ at: Date.now(), done: body.done, total: body.total, fr: _lemmaFr })); } catch { /* quota */ }
+    const added = Object.keys(_lemmaFr).length - before;
+    if (added > 0) {
+      (store.get('decks') || []).forEach(d => {
+        if (d.source !== 'quran') return;
+        d.cards.forEach(c => { const fr = _lemmaFr[c.id.slice(2)]; if (fr) c.back = fr; });
+      });
+    }
+    return added;
+  } catch { return 0; }
+}
+
 export function lemmaMeaning(lemma, lexicon = _lexicon) {
+  const global = lemmaFrMap()[lemma];
+  if (global) return { text: global, lang: 'fr' };
   for (const s of _index?.surahs || []) {
     const fr = cachedFr(s.id)?.lemmas?.[lemma];
     if (fr) return { text: fr, lang: 'fr' };
@@ -103,7 +146,7 @@ export async function buildQuranDecks() {
       id: lemmaCardId(lemma),
       front: lemma,
       frontPlain: removeHarakats(lemma),
-      back: fr?.lemmas?.[lemma] || meaningsFr[lemma] || lexicon.glossEn?.[lemma] || '',
+      back: fr?.lemmas?.[lemma] || meaningsFr[lemma] || lemmaFrMap()[lemma] || lexicon.glossEn?.[lemma] || '',
       en: lexicon.glossEn?.[lemma] || '',
       translit: translitAr(lemma),
       emoji: '', image: null, audio: null,

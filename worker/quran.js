@@ -102,6 +102,10 @@ export async function handleQuranFr(request, env) {
   const data = { words, lemmas };
   await env.DB.prepare('INSERT OR REPLACE INTO quran_fr (surah, data, model, created_at) VALUES (?1, ?2, ?3, ?4)')
     .bind(n, JSON.stringify(data), model, Date.now()).run();
+  // Les sens de base obtenus ici complètent le lexique global (évite de les retraduire)
+  const fill = env.DB.prepare('UPDATE quran_lemma SET fr = ?1, updated_at = ?2 WHERE lemma = ?3 AND fr IS NULL');
+  const fills = Object.entries(lemmas).filter(([, fr]) => fr).map(([l, fr]) => fill.bind(fr.slice(0, 60), Date.now(), l));
+  for (let k = 0; k < fills.length; k += 100) await env.DB.batch(fills.slice(k, k + 100)).catch(() => {});
   return json({ surah: n, ...data, coverage: { words: 1, lemmas: 1 } });
 }
 
