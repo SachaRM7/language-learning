@@ -26,6 +26,7 @@ export async function renderCoranHifz({ n, v }) {
 }
 
 const verse = () => H.surah.verses.find(x => x.n === H.verseN);
+const maskFrom = () => { try { return localStorage.getItem('ha-hifz-mask') || 'start'; } catch { return 'start'; } };
 
 function shell(content) {
   const total = H.surah.verses.length;
@@ -51,9 +52,10 @@ function bindShell() {
   document.getElementById('hz-close').addEventListener('click', () => { stopAudio(); navigate(`/coran/${H.surah.id}`); });
 }
 
-function verseWords(v, { hideFrom = Infinity, tappable = true } = {}) {
+/** @param {(j:number)=>boolean} [isHidden] */
+function verseWords(v, { isHidden = () => false, tappable = true } = {}) {
   return v.w.map((w, j) => {
-    const hidden = j >= hideFrom;
+    const hidden = isHidden(j);
     return `<button class="qw hz-w ${hidden ? 'is-hidden' : ''}" data-j="${j}" ${tappable ? '' : 'tabindex="-1"'}>${hidden ? '<span class="hz-w__mask"></span>' : ''}<span class="hz-w__t">${escapeHtml(w.t)}</span></button>`;
   }).join(' ');
 }
@@ -100,12 +102,20 @@ function stepListen() {
 function stepMask() {
   const v = verse();
   const n = v.w.length;
-  const hideFrom = n - H.hidden;
+  const fromStart = maskFrom() === 'start';
+  // Ordre de lecture : le 1er mot est à droite. « Début » masque d'abord les premiers mots.
+  const isHidden = j => (fromStart ? j < H.hidden : j >= n - H.hidden);
   const all = H.hidden >= n;
   $app().innerHTML = shell(`
-    <p class="hz-help">Récite le verset de mémoire. Masque les mots un par un, de la fin vers le début. Touche un mot masqué pour le revoir un instant.</p>
+    <div class="segmented hz-maskdir" role="radiogroup" aria-label="Masquer depuis">
+      <button class="${fromStart ? 'is-active' : ''}" data-maskdir="start" role="radio" aria-checked="${fromStart}">Masquer depuis le début</button>
+      <button class="${fromStart ? '' : 'is-active'}" data-maskdir="end" role="radio" aria-checked="${!fromStart}">depuis la fin</button>
+    </div>
+    <p class="hz-help">Récite le verset de mémoire. ${fromStart
+      ? 'Les mots disparaissent un par un à partir du <b>premier mot</b> (à droite, l\'arabe se lit de droite à gauche).'
+      : 'Les mots disparaissent un par un à partir du <b>dernier mot</b> (à gauche) : le début du verset te sert d\'appui.'} Touche un mot masqué pour le revoir un instant.</p>
     <div class="hz-card">
-      <p class="hz-ar" lang="ar">${verseWords(v, { hideFrom })}</p>
+      <p class="hz-ar" lang="ar">${verseWords(v, { isHidden })}</p>
     </div>
     <div class="hz-mask-actions">
       <button class="btn btn--secondary" id="hz-unhide" ${H.hidden ? '' : 'disabled'}>${icon('eye')} Moins</button>
@@ -117,6 +127,11 @@ function stepMask() {
       <button class="btn btn--ghost btn--block" id="hz-back">${icon('volume-2')} Réécouter</button>
     </div>`);
   bindShell();
+  document.querySelectorAll('[data-maskdir]').forEach(b => b.addEventListener('click', () => {
+    try { localStorage.setItem('ha-hifz-mask', b.dataset.maskdir); } catch { /* stockage indisponible */ }
+    haptic();
+    stepMask();
+  }));
   document.querySelectorAll('.hz-w.is-hidden').forEach(b => b.addEventListener('click', () => {
     b.classList.add('is-peek');
     setTimeout(() => b.classList.remove('is-peek'), 1200);
