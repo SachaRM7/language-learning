@@ -19,6 +19,9 @@ export function playWord(text, lang) {
     const utter = new SpeechSynthesisUtterance(text);
     utter.lang = lang;
     utter.rate = 0.8;
+    const prefix = (lang || '').slice(0, 2);
+    const voice = speechSynthesis.getVoices().find(v => v.lang?.startsWith(prefix));
+    if (voice) utter.voice = voice;
     utter.onend = resolve;
     utter.onerror = resolve;
     speechSynthesis.speak(utter);

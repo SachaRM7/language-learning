@@ -1,6 +1,7 @@
 // js/components/modal.js — Modal d'options
 
 import { escapeHtml } from '../utils.js';
+import { icon } from '../icons.js';
 
 export function renderOptionsModal({ currentOptions = {}, courseConfig = {}, showWrittenToggle = true }) {
   const { shuffle = false, favoritesOnly = false, frontSide = 'front', writtenMode = false, correctionLevel = 'flexible' } = currentOptions;
@@ -15,7 +16,7 @@ export function renderOptionsModal({ currentOptions = {}, courseConfig = {}, sho
       <div class="modal">
         <div class="modal__header">
           <span class="modal__title">Options</span>
-          <button class="modal__close" id="modal-close">✕</button>
+          <button class="modal__close" id="modal-close" aria-label="Fermer">${icon('x')}</button>
         </div>
 
         <div class="modal-section">
@@ -92,29 +93,32 @@ export function showModal(html) {
   const existing = document.getElementById('modal-overlay');
   if (existing) existing.remove();
   document.body.insertAdjacentHTML('beforeend', html);
-  requestAnimationFrame(() => {
-    const overlay = document.getElementById('modal-overlay');
-    if (overlay) overlay.style.opacity = '1';
-  });
+  const overlay = document.getElementById('modal-overlay');
+  const onKey = e => { if (e.key === 'Escape') { hideModal(); document.removeEventListener('keydown', onKey); } };
+  document.addEventListener('keydown', onKey);
+  overlay?.querySelector('button, input')?.focus({ preventScroll: true });
 }
 
 export function hideModal() {
   const overlay = document.getElementById('modal-overlay');
-  if (overlay) overlay.remove();
+  if (!overlay) return;
+  overlay.id = '';
+  overlay.classList.add('is-closing');
+  setTimeout(() => overlay.remove(), 220);
 }
 
-export function showConfirmModal(title, message, onConfirm, onCancel) {
+export function showConfirmModal(title, message, onConfirm, onCancel, { confirmLabel = 'Recommencer', danger = false } = {}) {
   showModal(`
     <div class="modal-overlay" id="modal-overlay">
       <div class="modal">
         <div class="modal__header">
           <span class="modal__title">${escapeHtml(title)}</span>
-          <button class="modal__close" id="modal-close">&#x2715;</button>
+          <button class="modal__close" id="modal-close" aria-label="Fermer">${icon('x')}</button>
         </div>
         <p class="confirm-modal__message">${escapeHtml(message)}</p>
         <div class="confirm-modal__actions">
-          <button class="primary-btn" id="confirm-ok">Recommencer</button>
-          <button class="secondary-btn" id="confirm-cancel">Annuler</button>
+          <button class="btn btn--block ${danger ? 'btn--danger' : 'btn--primary'}" id="confirm-ok">${escapeHtml(confirmLabel)}</button>
+          <button class="btn btn--block btn--ghost" id="confirm-cancel">Annuler</button>
         </div>
       </div>
     </div>

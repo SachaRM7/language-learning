@@ -1,168 +1,203 @@
-// js/pages/home.js — Page d'accueil + sélection de cours
+// js/pages/home.js — Accueil : salutation, série, objectif du jour, reprise du parcours, exploration, mot du jour
 
 import { store } from '../store.js';
 import { navigate } from '../router.js';
-import { renderHeader } from '../components/header.js';
 import { renderBottomNav } from '../components/bottom-nav.js';
 import { escapeHtml } from '../utils.js';
 import { db } from '../db.js';
+import { icon } from '../icons.js';
+import { ring, progressBar, greeting, animateCount } from '../ui.js';
+import { playWord } from '../audio.js';
+import { liveStreak, todayXP, last7Days, dayKey, DAILY_GOAL_DEFAULT } from '../activity.js';
+import { getParcoursState, getDuePhrases } from '../parcours.js';
 
 const $app = () => document.getElementById('app');
 
-export function renderCourseSelect() {
-  const courses = store.get('courses') || [];
-
-  $app().innerHTML = `
-    <div class="course-select">
-      <div class="course-select__title">
-        <h1>HelloArabic</h1>
-        <p>Choisissez votre cours</p>
-      </div>
-      <div class="course-grid">
-        ${courses.map(c => `
-          <div class="course-card" data-course-id="${escapeHtml(c.id)}">
-            <div class="course-card__flag">${c.flag}</div>
-            <div>
-              <div class="course-card__name">${escapeHtml(c.name)}</div>
-              <div class="course-card__name-local">${escapeHtml(c.nameLocal)}</div>
-              <div class="course-card__desc">${escapeHtml(c.description)}</div>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-  `;
-
-  bindCourseSelectEvents();
-  feather.replace();
-}
-
-function bindCourseSelectEvents() {
-  $app().querySelectorAll('.course-card').forEach(el => {
-    el.addEventListener('click', () => {
-      const courses = store.get('courses') || [];
-      const course = courses.find(c => c.id === el.dataset.courseId);
-      if (course) {
-        store.set('currentCourse', course);
-        navigate('/home');
-      }
-    });
-  });
-}
+const EXPLORE = [
+  { path: '/mots',          title: 'Vocabulaire', desc: '767 mots · 94 listes', glyph: 'ك', ic: 'layers',   tone: 'primary' },
+  { path: '/conversations', title: 'Dialogues',   desc: 'Situations réelles',    glyph: 'ح', ic: 'messages', tone: 'gold' },
+  { path: '/alphabet',      title: 'Alphabet',    desc: '28 lettres & voyelles', glyph: 'أ', ic: 'languages', tone: 'violet' },
+  { path: '/racines',       title: 'Racines',     desc: 'Familles de mots',      glyph: 'ج', ic: 'sprout',   tone: 'info' },
+];
 
 export async function renderHome() {
   const course = store.get('currentCourse');
   if (!course) { navigate('/'); return; }
 
-  // Render quickly with 0, then update with real data
-  _renderHomeUI(course, 0, null);
-
-  const [dueEntries, stats, lessons] = await Promise.all([
+  const [dueWords, stats, parcours, duePhrases] = await Promise.all([
     db.getDueWords(course.id),
     db.getStats(course.id),
-    _getLastLesson(course.id),
+    getParcoursState(),
+    getDuePhrases(),
   ]);
+  const dueTotal = dueWords.length + duePhrases.length;
+  store.set('dueCount', dueTotal);
 
-  store.set('dueCount', dueEntries.length);
-  _renderHomeUI(course, dueEntries.length, lessons, stats);
-}
+  const g = greeting();
+  const streak = liveStreak(stats);
+  const xp = todayXP(stats);
+  const goal = DAILY_GOAL_DEFAULT;
 
-async function _getLastLesson(courseId) {
-  try {
-    const lessonsIndex = store.get('lessons');
-    if (!lessonsIndex) return null;
-    for (const l of lessonsIndex) {
-      const progress = await db.getLessonProgress(courseId, l.id);
-      if (progress && progress.exercisesCompleted > 0) return { lesson: l, progress };
-    }
-  } catch {}
-  return null;
-}
-
-function _renderHomeUI(course, dueCount, lastLesson, stats) {
   $app().innerHTML = `
-    ${renderHeader({ title: `${course.flag} ${course.nameLocal}` })}
-    <main class="page-content page-content--nav">
-      <div class="home-dashboard">
+    <header class="home-top">
+      <div class="home-top__greet">
+        <div class="home-top__hello">${g.fr} <span class="home-top__wave">👋</span></div>
+        <div class="home-top__ar" lang="ar" title="${escapeHtml(g.tr)}">${g.ar}</div>
+      </div>
+      <div class="home-top__right">
+        <span class="streak-pill ${streak > 0 ? 'is-on' : 'is-off'}" title="Série de jours">
+          <span class="streak-pill__flame">🔥</span>${streak}
+        </span>
+        <button class="icon-btn" data-navigate="/profil" aria-label="Profil et réglages">${icon('user')}</button>
+      </div>
+    </header>
 
-        <div class="home-modes">
-          <div class="home-mode-card" data-navigate="/mots" data-mode="mots">
-            <div class="home-mode-card__icon-wrap">📚</div>
-            <div>
-              <div class="home-mode-card__title">Vocabulaire</div>
-              <div class="home-mode-card__desc">Flashcards, quiz, association</div>
-            </div>
+    <main class="page-content page-content--nav home">
+      <div class="stagger">
+        ${heroCard(parcours)}
+        ${goalCard(xp, goal, stats)}
+        ${dueTotal > 0 ? reviewCard(dueWords.length, duePhrases.length) : ''}
+        <section class="section">
+          <div class="section__head"><h2 class="section__title">Explorer</h2></div>
+          <div class="bento">
+            ${EXPLORE.map(exploreTile).join('')}
           </div>
-          <div class="home-mode-card" data-navigate="/conversations" data-mode="conversations">
-            <div class="home-mode-card__icon-wrap">💬</div>
-            <div>
-              <div class="home-mode-card__title">Conversations</div>
-              <div class="home-mode-card__desc">Dialogues et leçons audio</div>
-            </div>
-          </div>
-          <div class="home-mode-card" data-navigate="/alphabet" data-mode="alphabet">
-            <div class="home-mode-card__icon-wrap">ا</div>
-            <div>
-              <div class="home-mode-card__title">Alphabet</div>
-              <div class="home-mode-card__desc">28 lettres, diacritiques, règles</div>
-            </div>
-          </div>
-          <div class="home-mode-card" data-navigate="/racines" data-mode="racines">
-            <div class="home-mode-card__icon-wrap">🌱</div>
-            <div>
-              <div class="home-mode-card__title">Racines</div>
-              <div class="home-mode-card__desc">Familles de mots trilittères</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="home-review-card ${dueCount > 0 ? 'home-review-card--due' : 'home-review-card--done'}" data-navigate="/revision">
-          ${dueCount > 0 ? `
-            <div class="home-review-card__eyebrow">📝 Révision du jour</div>
-            <div class="home-review-card__count">${dueCount}</div>
-            <div class="home-review-card__subtitle">mot${dueCount !== 1 ? 's' : ''} à réviser</div>
-            <div class="home-review-card__cta">Commencer <i data-feather="arrow-right"></i></div>
-          ` : `
-            <i data-feather="check-circle"></i>
-            Tout est à jour !
-          `}
-        </div>
-
-        ${lastLesson ? `
-        <div class="home-section">
-          <div class="home-section__title">Continuer</div>
-          <div class="home-continue-card" data-navigate="/conversations/lecon/${escapeHtml(lastLesson.lesson.id)}">
-            <div class="home-continue-card__icon">💬</div>
-            <div class="home-continue-card__body">
-              <div class="home-continue-card__title">${escapeHtml(lastLesson.lesson.titleFr)}</div>
-              <div class="home-continue-card__meta">${lastLesson.progress.exercisesCompleted} / ${lastLesson.progress.exercisesTotal} exercices</div>
-            </div>
-            <i data-feather="chevron-right"></i>
-          </div>
-        </div>
-        ` : ''}
-
-        ${stats ? `
-        <div class="home-quick-stats">
-          <div class="home-quick-stat">
-            <div class="home-quick-stat__value">${stats.totalWordsAcquired || 0}</div>
-            <div class="home-quick-stat__label">Mots acquis</div>
-          </div>
-          <div class="home-quick-stat">
-            <div class="home-quick-stat__value">${stats.totalLessonsCompleted || 0}</div>
-            <div class="home-quick-stat__label">Leçons</div>
-          </div>
-          <div class="home-quick-stat">
-            <div class="home-quick-stat__value">${stats.currentStreak || 0}</div>
-            <div class="home-quick-stat__label">Jours</div>
-          </div>
-        </div>
-        ` : ''}
-
+        </section>
+        <section class="section" id="wotd-slot">
+          <div class="section__head"><h2 class="section__title">Mot du jour</h2></div>
+          <div class="wotd card"><div class="skeleton" style="height:120px"></div></div>
+        </section>
       </div>
     </main>
     ${renderBottomNav('home')}
   `;
 
-  feather.replace();
+  const xpEl = $app().querySelector('[data-xp]');
+  if (xpEl) animateCount(xpEl, xp);
+  loadWordOfTheDay(course);
 }
+
+// ── Carte « Continue ton parcours » ───────────────────────────────
+function heroCard(p) {
+  const cur = p.current;
+  if (!cur) {
+    return `
+      <section class="hero hero--done pressable" data-navigate="/parcours">
+        <div class="hero__eyebrow">${icon('trophy')} Parcours terminé</div>
+        <div class="hero__title">Bravo, tu as fini tous les modules !</div>
+        <div class="hero__sub">Révise tes phrases pour les garder en mémoire.</div>
+      </section>`;
+  }
+  const mod = p.modules.find(m => m.id === cur.moduleId);
+  const { ar, fr } = cur.titleParts;
+  const started = p.completed > 0;
+  return `
+    <section class="hero" style="--m-tint:${mod.tint.tint}">
+      <div class="hero__glyph" aria-hidden="true">${escapeHtml((ar || 'ع').replace(/[ً-ٰٟ]/g, '').trim().charAt(0) || 'ع')}</div>
+      <div class="hero__eyebrow">${icon('route')} ${started ? 'Continue ton parcours' : 'Commence ton parcours'} · Module ${mod.index + 1}</div>
+      ${ar ? `<div class="hero__ar" lang="ar">${escapeHtml(ar)}</div>` : ''}
+      <div class="hero__title">${escapeHtml(fr)}</div>
+      <div class="hero__sub">${escapeHtml(cur.objective || mod.description)}</div>
+      <div class="hero__progress">
+        ${progressBar(mod.pct, 'progress--thin')}
+        <span>${mod.doneCount}/${mod.lessons.length}</span>
+      </div>
+      <div class="hero__actions">
+        <button class="btn btn--gold btn--lg hero__cta" data-navigate="/parcours/lecon/${escapeHtml(cur.id)}">
+          ${icon('play')} ${started ? 'Continuer' : 'Commencer'}
+        </button>
+        <button class="hero__map" data-navigate="/parcours" aria-label="Voir tout le parcours">${icon('route')}</button>
+      </div>
+    </section>`;
+}
+
+// ── Objectif du jour + semaine ────────────────────────────────────
+function goalCard(xp, goal, stats) {
+  const pct = Math.min(100, (xp / goal) * 100);
+  const reached = xp >= goal;
+  const week = last7Days(stats);
+  return `
+    <section class="goal card">
+      <div class="goal__ring">${ring(pct, { size: 64, stroke: 7, label: reached ? '✓' : `${Math.round(pct)}%`, color: reached ? 'var(--success)' : '' })}</div>
+      <div class="goal__body">
+        <div class="goal__title">${reached ? 'Objectif atteint !' : 'Objectif du jour'}</div>
+        <div class="goal__meta"><strong data-xp>0</strong> / ${goal} XP</div>
+        <div class="week" aria-label="Activité des 7 derniers jours">
+          ${week.map(d => `
+            <div class="week__day ${d.xp > 0 ? 'is-active' : ''} ${d.isToday ? 'is-today' : ''}" title="${d.key} · ${d.xp} XP">
+              <span class="week__dot">${d.xp > 0 ? icon('check') : ''}</span>
+              <span class="week__label">${d.label}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+    </section>`;
+}
+
+function reviewCard(words, phrases) {
+  const total = words + phrases;
+  const parts = [words ? `${words} mot${words > 1 ? 's' : ''}` : '', phrases ? `${phrases} phrase${phrases > 1 ? 's' : ''}` : ''].filter(Boolean).join(' · ');
+  return `
+    <button class="row review-row pressable" data-navigate="/revision">
+      <span class="row__icon">${icon('refresh-cw')}</span>
+      <span class="row__body">
+        <span class="row__title">${total} élément${total > 1 ? 's' : ''} à réviser</span>
+        <span class="row__meta">${parts} · quelques minutes suffisent</span>
+      </span>
+      <span class="row__chev">${icon('chevron-right')}</span>
+    </button>`;
+}
+
+function exploreTile(t) {
+  return `
+    <button class="bento__tile bento__tile--${t.tone} pressable" data-navigate="${t.path}">
+      <span class="bento__glyph" aria-hidden="true">${t.glyph}</span>
+      <span class="bento__icon">${icon(t.ic)}</span>
+      <span class="bento__title">${t.title}</span>
+      <span class="bento__desc">${t.desc}</span>
+    </button>`;
+}
+
+// ── Mot du jour ───────────────────────────────────────────────────
+async function loadWordOfTheDay(course) {
+  try {
+    let decks = store.get('decks');
+    if (!decks) {
+      const data = await fetch(course.decksFile).then(r => r.json());
+      decks = data.decks;
+      store.set('decks', decks);
+    }
+    const pool = decks.filter(d => !d.source).flatMap(d => d.cards.map(c => ({ ...c, deck: d })));
+    if (!pool.length) return;
+    const seed = [...dayKey()].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7);
+    const card = pool[seed % pool.length];
+    const themes = store.get('themes') || [];
+    const theme = themes.find(t => t.decks.includes(card.deck.id));
+    const slot = document.querySelector('#wotd-slot .wotd');
+    if (!slot) return;
+    slot.innerHTML = `
+      <div class="wotd__top">
+        <span class="badge badge--primary">${escapeHtml(card.deck.name)}</span>
+        <button class="audio-btn" id="wotd-audio" aria-label="Écouter">${icon('volume-2')}</button>
+      </div>
+      <div class="wotd__main">
+        ${card.emoji ? `<div class="wotd__emoji">${card.emoji}</div>` : ''}
+        <div class="wotd__words">
+          <div class="wotd__ar" lang="ar">${escapeHtml(card.front)}</div>
+          ${card.translit ? `<div class="wotd__tr">${escapeHtml(card.translit)}</div>` : ''}
+          <div class="wotd__fr">${escapeHtml(card.back)}</div>
+        </div>
+      </div>
+      ${theme ? `<button class="wotd__link" data-navigate="/mots/${escapeHtml(theme.id)}/${escapeHtml(card.deck.id)}">Réviser ce thème ${icon('arrow-right')}</button>` : ''}`;
+    const btn = document.getElementById('wotd-audio');
+    btn?.addEventListener('click', async () => {
+      btn.classList.add('is-playing');
+      await playWord(card.front, course.config.frontLang);
+      btn.classList.remove('is-playing');
+    });
+  } catch {
+    document.getElementById('wotd-slot')?.remove();
+  }
+}
+
+// Conservé pour compatibilité (sélection de cours, non routée actuellement)
+export function renderCourseSelect() { navigate('/home'); }

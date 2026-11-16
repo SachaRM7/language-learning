@@ -39,18 +39,30 @@ function matchRoute(hash) {
 
 function dispatch(hash) {
   const result = matchRoute(hash);
-  if (result) {
-    _currentRoute = { path: result.path, params: result.params };
-    const app = document.getElementById('app');
-    if (app) {
-      app.classList.add('page-entering');
-      setTimeout(() => app.classList.remove('page-entering'), 250);
-    }
-    result.handler(result.params);
+  if (!result) { navigate('/home'); return; }
+  _currentRoute = { path: result.path, params: result.params };
+
+  const run = () => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    document.querySelectorAll('.feedback-bar, .modal-overlay').forEach(el => el.remove());
+    return result.handler(result.params);
+  };
+
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (document.startViewTransition && !reduce && _hasRendered) {
+    document.startViewTransition(async () => { await run(); });
   } else {
-    navigate('/home');
+    const app = document.getElementById('app');
+    if (app && _hasRendered) {
+      app.classList.add('page-entering');
+      setTimeout(() => app.classList.remove('page-entering'), 400);
+    }
+    run();
   }
+  _hasRendered = true;
 }
+
+let _hasRendered = false;
 
 export function startRouter() {
   document.body.addEventListener('click', (e) => {

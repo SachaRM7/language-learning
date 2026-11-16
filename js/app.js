@@ -1,6 +1,8 @@
 // js/app.js — Bootstrap : init DB, charger store, démarrer router
 
+import './icons.js';
 import { db } from './db.js';
+import { applyTheme, bindHeaderScroll } from './ui.js';
 import { store } from './store.js';
 import { route, startRouter, navigate } from './router.js';
 import { renderHome } from './pages/home.js';
@@ -21,6 +23,8 @@ import { renderReviewSession } from './pages/review-session.js';
 import { renderAlphabet } from './pages/alphabet.js';
 import { renderRoots } from './pages/roots.js';
 import { renderProfil } from './pages/profil.js';
+import { renderParcoursHome } from './pages/parcours-home.js';
+import { renderParcoursLesson, renderParcoursReview } from './pages/parcours-lesson.js';
 
 async function init() {
   await db.init();
@@ -28,9 +32,8 @@ async function init() {
   const prefs = await db.getPreferences();
   store.set('preferences', prefs);
 
-  if (prefs.theme === 'light') {
-    document.body.classList.add('light-mode');
-  }
+  applyTheme(prefs.theme || 'system');
+  bindHeaderScroll();
 
   const [courses, themes] = await Promise.all([
     fetch('data/courses.json').then(r => r.json()),
@@ -60,6 +63,11 @@ async function init() {
   // Phase 1 — Fondations (sélection cours en suspend : on va directement sur /home)
   route('/', () => navigate('/home'));
   route('/home', renderHome);
+
+  // Parcours guidé (ex-projet « Apprends l'arabe »)
+  route('/parcours', renderParcoursHome);
+  route('/parcours/revision', renderParcoursReview);
+  route('/parcours/lecon/:lessonId', renderParcoursLesson);
 
   // Phase 2 — Mode Mots
   route('/mots', renderWordsHome);
@@ -96,12 +104,11 @@ async function init() {
   route('/profil', renderProfil);
 
   startRouter();
-  feather.replace();
 }
 
 document.addEventListener('DOMContentLoaded', init);
 
 // Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').catch(() => {});
+  navigator.serviceWorker.register('sw.js').catch(() => {});
 }

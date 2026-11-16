@@ -76,7 +76,7 @@ class Database {
     const prefs = await this._get('preferences', 'global');
     return prefs || {
       id: 'global',
-      theme: 'dark',
+      theme: 'system',
       lastCourse: null,
       showTranslit: true,
       showHarakats: true,
@@ -118,6 +118,11 @@ class Database {
 
   async getLessonProgress(courseId, lessonId) {
     return await this._get('lessonProgress', `${courseId}:${lessonId}`) || null;
+  }
+
+  async getAllLessonProgress(courseId) {
+    const all = await this._getAll('lessonProgress');
+    return all.filter(e => e.courseId === courseId);
   }
 
   async saveLessonProgress(courseId, lessonId, data) {
