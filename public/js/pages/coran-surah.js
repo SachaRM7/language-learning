@@ -3,6 +3,7 @@
 import { store } from '../store.js';
 import { navigate } from '../router.js';
 import { renderHeader } from '../components/header.js';
+import { renderBottomNav } from '../components/bottom-nav.js';
 import { db } from '../db.js';
 import { escapeHtml } from '../utils.js';
 import { icon } from '../icons.js';
@@ -50,7 +51,7 @@ function render() {
 
   $app().innerHTML = `
     ${renderHeader({ title: surah.name, back: '/coran' })}
-    <main class="page-content qs-page">
+    <main class="page-content page-content--nav qs-page">
       <section class="qs-hero">
         <div class="qs-hero__num">${surah.id}</div>
         <div class="qs-hero__ar" lang="ar">${escapeHtml(surah.nameAr)}</div>
@@ -71,7 +72,8 @@ function render() {
         <button class="${S.tab === 'vocab' ? 'is-active' : ''}" data-tab="vocab" role="tab">Vocabulaire</button>
       </div>
       <div id="qs-tab"></div>
-    </main>`;
+    </main>
+    ${renderBottomNav('coran')}`;
 
   $app().querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => {
     S.tab = b.dataset.tab;
