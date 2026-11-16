@@ -13,7 +13,7 @@ const ROOT = new URL('../public/', import.meta.url).pathname;
 const OUT = new URL('../worker/assets.generated.js', import.meta.url).pathname;
 
 // Sources de données non utilisées à l'exécution (servent aux scripts de génération)
-const EXCLUDE = [/^data\/vocabulary\//, /^data\/[^/]+\.js$/, /^data\/(arabic|french)\//, /^data\/translations_cache\.json$/, /\.gitkeep$/, /\.DS_Store$/];
+const EXCLUDE = [/^data\/quran\/surah-\d+\.json$/, /^data\/vocabulary\//, /^data\/[^/]+\.js$/, /^data\/(arabic|french)\//, /^data\/translations_cache\.json$/, /\.gitkeep$/, /\.DS_Store$/];
 
 const TYPES = {
   '.html': 'text/html; charset=utf-8',

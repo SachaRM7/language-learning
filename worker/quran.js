@@ -1,6 +1,6 @@
 // worker/quran.js — Gloses françaises du Coran, générées par Claude une fois par sourate puis mises en cache dans D1.
 //
-// Les données de base (texte, glose anglaise, lemmes, racines) sont embarquées (public/data/quran).
+// Les sourates sont stockées dans D1 ; seul le lexique est embarqué.
 // Seul le sens en français mot à mot manque dans les sources libres : on le produit ici, en contexte.
 
 import Anthropic from '@anthropic-ai/sdk';
@@ -43,9 +43,18 @@ const SCHEMA = {
   additionalProperties: false,
 };
 
-function loadSurah(n) {
-  const asset = ASSETS[`/data/quran/surah-${n}.json`];
-  return asset ? JSON.parse(asset.s) : null;
+async function loadSurah(n, env) {
+  const row = await env.DB.prepare('SELECT data FROM quran_surah WHERE id = ?1').bind(n).first();
+  return row ? JSON.parse(row.data) : null;
+}
+
+export async function handleQuranSurah(request, env) {
+  if (!env.DB) throw httpError(503, 'sync_unavailable');
+  const n = Number(new URL(request.url).searchParams.get('n'));
+  if (!Number.isInteger(n) || n < 1 || n > 114) throw httpError(400, 'invalid_surah');
+  const surah = await loadSurah(n, env);
+  if (!surah) throw httpError(404, 'surah_not_found');
+  return json(surah, 200, { 'cache-control': 'private, max-age=86400' });
 }
 
 let _lexicon = null;
@@ -67,14 +76,40 @@ export async function handleQuranFr(request, env) {
   if (cached) return json({ surah: n, ...JSON.parse(cached.data) }, 200, { 'cache-control': 'private, max-age=86400' });
   if (request.method === 'GET') return new Response(null, { status: 204, headers: { 'cache-control': 'no-store' } }); // pas encore généré
 
-  const surah = loadSurah(n);
-  if (!surah) throw httpError(404, 'surah_not_bundled');
+  const surah = await loadSurah(n, env);
+  if (!surah) throw httpError(404, 'surah_not_found');
   if (!env.ANTHROPIC_API_KEY) throw httpError(503, 'ai_not_configured');
 
+  const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+  const words = {}, lemmas = {};
+  let model = '';
+  // Limite aussi les mots : 40 longs versets peuvent dépasser le budget de sortie.
+  const chunks = [];
+  let chunk = [], count = 0;
+  for (const verse of surah.verses) {
+    if (chunk.length && (chunk.length >= 40 || count + verse.w.length > 650)) {
+      chunks.push(chunk); chunk = []; count = 0;
+    }
+    chunk.push(verse); count += verse.w.length;
+  }
+  if (chunk.length) chunks.push(chunk);
+  for (const verses of chunks) {
+    const result = await translateChunk(client, env, surah, verses);
+    Object.assign(words, result.words);
+    for (const [lemma, meaning] of Object.entries(result.lemmas)) lemmas[lemma] ??= meaning;
+    model = result.model;
+  }
+  const data = { words, lemmas };
+  await env.DB.prepare('INSERT OR REPLACE INTO quran_fr (surah, data, model, created_at) VALUES (?1, ?2, ?3, ?4)')
+    .bind(n, JSON.stringify(data), model, Date.now()).run();
+  return json({ surah: n, ...data, coverage: { words: 1, lemmas: 1 } });
+}
+
+async function translateChunk(client, env, surah, verses) {
   // Prépare l'entrée : mots numérotés + lemmes uniques
   const flat = [];
   const lines = [];
-  for (const v of surah.verses) {
+  for (const v of verses) {
     lines.push(`\nVerset ${v.n} — « ${v.fr} »`);
     v.w.forEach((w, j) => {
       flat.push(`${v.n}:${j}`);
@@ -82,12 +117,11 @@ export async function handleQuranFr(request, env) {
     });
   }
   const lx = lexicon();
-  const lemmaList = [...new Set(surah.verses.flatMap(v => v.w.map(w => w.l)).filter(Boolean))];
+  const lemmaList = [...new Set(verses.flatMap(v => v.w.map(w => w.l)).filter(Boolean))];
   const lemmaLines = lemmaList.map(l => `${l} | ${lx.lemmas[l]?.[0] || '—'} | ${lx.glossEn[l] || ''}`);
 
   const prompt = `Sourate ${surah.id} — ${surah.name} (${surah.nameAr}, « ${surah.nameFr} »)\n\nMOTS (i | arabe | anglais) :${lines.join('\n')}\n\nLEMMES (lemme | racine | anglais) :\n${lemmaLines.join('\n')}`;
 
-  const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
   let response;
   try {
     response = await client.beta.messages.create({
@@ -124,8 +158,8 @@ export async function handleQuranFr(request, env) {
   for (const { lemma, fr } of parsed.lemmas || []) {
     if (known.has(lemma) && typeof fr === 'string' && fr.trim()) lemmas[lemma] = fr.trim().slice(0, 60);
   }
-  const data = { words, lemmas };
-  await env.DB.prepare('INSERT OR REPLACE INTO quran_fr (surah, data, model, created_at) VALUES (?1, ?2, ?3, ?4)')
-    .bind(n, JSON.stringify(data), response.model || '', Date.now()).run();
-  return json({ surah: n, ...data, coverage: { words: Object.keys(words).length / flat.length, lemmas: Object.keys(lemmas).length / lemmaList.length } });
+  if (Object.keys(words).length !== flat.length || Object.keys(lemmas).length !== lemmaList.length) {
+    throw httpError(502, 'ai_incomplete');
+  }
+  return { words, lemmas, model: response.model || '' };
 }

@@ -6,7 +6,7 @@
 //  - Racines et lemmes : Quranic Arabic Corpus v0.4 (corpus.quran.com), version corrigée
 //    github.com/mustafa0x/quran-morphology
 //
-// Usage : node scripts/build-quran.mjs            (sourates par défaut : 1 + 78…114)
+// Usage : node scripts/build-quran.mjs            (les 114 sourates par défaut)
 //         node scripts/build-quran.mjs 1 2 36     (liste explicite)
 
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -18,7 +18,7 @@ const TRANSLATION_FR = 31; // Hamidullah
 const RECITER = 7;         // Mishary Rashid Alafasy
 
 const args = process.argv.slice(2).map(Number).filter(Boolean);
-const SURAHS = args.length ? args : [1, ...Array.from({ length: 37 }, (_, i) => 78 + i)];
+const SURAHS = args.length ? args : Array.from({ length: 114 }, (_, i) => i + 1);
 
 const getJSON = async url => {
   for (let attempt = 1; attempt <= 4; attempt++) {
@@ -136,8 +136,10 @@ async function main() {
       verses: out,
     };
     writeFileSync(`${OUT}surah-${n}.json`, JSON.stringify(surah));
+    const lemmaCounts = {};
+    for (const v of out) for (const w of v.w) if (w.l) lemmaCounts[w.l] = (lemmaCounts[w.l] || 0) + 1;
     const lemmaSet = new Set(out.flatMap(v => v.w.map(w => w.l)).filter(Boolean));
-    index.push({ id: n, name: surah.name, nameAr: surah.nameAr, nameFr: surah.nameFr, place: surah.place, verses: out.length, words: out.reduce((s, v) => s + v.w.length, 0), lemmas: lemmaSet.size });
+    index.push({ id: n, name: surah.name, nameAr: surah.nameAr, nameFr: surah.nameFr, place: surah.place, verses: out.length, words: out.reduce((s, v) => s + v.w.length, 0), lemmas: lemmaSet.size, lemmaCounts });
     process.stdout.write(`${n} `);
   }
 

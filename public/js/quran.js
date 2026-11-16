@@ -32,7 +32,7 @@ export async function loadLexicon() {
 
 export async function loadSurah(n) {
   if (!_surahs.has(n)) {
-    const s = await fetch(`data/quran/surah-${n}.json`).then(r => { if (!r.ok) throw new Error('surah'); return r.json(); });
+    const s = await fetch(`/api/quran/surah?n=${n}`).then(r => { if (!r.ok) throw new Error('surah'); return r.json(); });
     _surahs.set(n, s);
   }
   return _surahs.get(n);
@@ -94,30 +94,21 @@ export const QURAN_THEME = {
 /** Construit un deck par sourate : une carte par lemme, dans l'ordre d'apparition. */
 export async function buildQuranDecks() {
   const [index, lexicon] = await Promise.all([loadQuranIndex(), loadLexicon()]);
+  const meaningsFr = {};
+  for (const meta of index.surahs) Object.assign(meaningsFr, cachedFr(meta.id)?.lemmas || {});
   const decks = [];
   for (const meta of learningOrder(index.surahs)) {
-    const surah = await loadSurah(meta.id);
     const fr = cachedFr(meta.id);
-    const seen = new Set();
-    const cards = [];
-    surah.verses.forEach(v => v.w.forEach(w => {
-      if (!w.l || seen.has(w.l)) return;
-      seen.add(w.l);
-      const meaning = fr?.lemmas?.[w.l] || lemmaMeaning(w.l, lexicon).text || w.en;
-      cards.push({
-        id: lemmaCardId(w.l),
-        front: w.l,
-        frontPlain: removeHarakats(w.l),
-        back: meaning,
-        en: lexicon.glossEn?.[w.l] || w.en,
-        translit: translitAr(w.l),
-        emoji: '',
-        image: null,
-        audio: null,
-        tags: ['coran'],
-        root: w.r,
-        example: { text: w.t, ref: v.k },
-      });
+    const cards = Object.keys(meta.lemmaCounts).map(lemma => ({
+      id: lemmaCardId(lemma),
+      front: lemma,
+      frontPlain: removeHarakats(lemma),
+      back: fr?.lemmas?.[lemma] || meaningsFr[lemma] || lexicon.glossEn?.[lemma] || '',
+      en: lexicon.glossEn?.[lemma] || '',
+      translit: translitAr(lemma),
+      emoji: '', image: null, audio: null,
+      tags: ['coran'],
+      root: lexicon.lemmas[lemma]?.[0] || null,
     }));
     decks.push({
       id: `coran-${meta.id}`,
@@ -181,7 +172,12 @@ export async function knownLemmas(courseId) {
 /** % des mots (occurrences) de la sourate dont le lemme est connu. */
 export function comprehension(surah, known) {
   let total = 0, ok = 0;
-  surah.verses.forEach(v => v.w.forEach(w => { total++; if (w.l && known.has(w.l)) ok++; }));
+  if (surah.lemmaCounts) {
+    total = surah.words;
+    for (const [lemma, count] of Object.entries(surah.lemmaCounts)) if (known.has(lemma)) ok += count;
+  } else {
+    surah.verses.forEach(v => v.w.forEach(w => { total++; if (w.l && known.has(w.l)) ok++; }));
+  }
   return total ? Math.round((ok / total) * 100) : 0;
 }
 

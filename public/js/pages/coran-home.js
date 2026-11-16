@@ -6,37 +6,36 @@ import { renderBottomNav } from '../components/bottom-nav.js';
 import { escapeHtml } from '../utils.js';
 import { icon } from '../icons.js';
 import { progressBar } from '../ui.js';
-import { accountReady } from '../sync.js';
 import { ensureAllDecks } from '../decks.js';
 import {
-  loadQuranIndex, loadSurah, learningOrder, knownLemmas, comprehension,
-  memorizedVerses, dueVerses, cachedFr, fetchFr,
+  loadQuranIndex, learningOrder, knownLemmas, comprehension,
+  memorizedVerses, dueVerses,
 } from '../quran.js';
 
 const $app = () => document.getElementById('app');
-let _bgRunning = false;
 
 export async function renderCoranHome() {
   const course = store.get('currentCourse');
   await ensureAllDecks();
   const index = await loadQuranIndex();
   const surahs = learningOrder(index.surahs);
-  const [known, memorized, due, loaded] = await Promise.all([
+  const [known, memorized, due] = await Promise.all([
     knownLemmas(course.id),
     memorizedVerses(),
     dueVerses(),
-    Promise.all(surahs.map(s => loadSurah(s.id))),
   ]);
-  const byId = new Map(loaded.map(s => [s.id, s]));
 
   const totalVerses = surahs.reduce((n, s) => n + s.verses, 0);
-  const allLemmas = new Set(loaded.flatMap(s => s.verses.flatMap(v => v.w.map(w => w.l)).filter(Boolean)));
+  const allLemmas = new Set(surahs.flatMap(s => Object.keys(s.lemmaCounts)));
   const knownInScope = [...allLemmas].filter(l => known.has(l)).length;
   let words = 0, ok = 0;
-  loaded.forEach(s => s.verses.forEach(v => v.w.forEach(w => { words++; if (w.l && known.has(w.l)) ok++; })));
+  for (const s of surahs) {
+    words += s.words;
+    for (const [lemma, count] of Object.entries(s.lemmaCounts)) if (known.has(lemma)) ok += count;
+  }
   const globalComp = words ? Math.round((ok / words) * 100) : 0;
 
-  const next = nextTarget(surahs, byId, memorized);
+  const next = nextTarget(surahs, memorized);
 
   $app().innerHTML = `
     ${renderHeader({ title: 'Coran', large: true, eyebrow: 'Mémoriser & comprendre', titleAr: 'القُرْآن' })}
@@ -48,7 +47,7 @@ export async function renderCoranHome() {
           ${next ? `
             <div class="qh-hero__ar" lang="ar">${escapeHtml(next.surah.nameAr)}</div>
             <div class="qh-hero__title">${escapeHtml(next.surah.name)} <span>· verset ${next.verse}</span></div>
-            <div class="qh-hero__sub">${escapeHtml(next.surah.nameFr)} · ${next.surah.verses.length} versets</div>
+            <div class="qh-hero__sub">${escapeHtml(next.surah.nameFr)} · ${next.surah.verses} versets</div>
             <div class="qh-hero__actions">
               <button class="btn btn--gold btn--lg" data-navigate="/coran/${next.surah.id}/hifz">${icon('play')} Mémoriser</button>
               <button class="qh-hero__read" data-navigate="/coran/${next.surah.id}" aria-label="Lire la sourate">${icon('book-open')}</button>
@@ -72,15 +71,13 @@ export async function renderCoranHome() {
             <span class="row__chev">${icon('chevron-right')}</span>
           </button>` : ''}
 
-        <div class="qh-gloss" id="qh-gloss" hidden></div>
-
         <section class="section">
           <div class="section__head">
             <h2 class="section__title">Sourates</h2>
             <span class="qh-legend"><i class="qh-dot qh-dot--mem"></i> mémorisé <i class="qh-dot qh-dot--comp"></i> compris</span>
           </div>
           <ol class="qh-list">
-            ${surahs.map(meta => surahRow(meta, byId.get(meta.id), memorized, known)).join('')}
+            ${surahs.map(meta => surahRow(meta, memorized, known)).join('')}
           </ol>
         </section>
 
@@ -92,14 +89,12 @@ export async function renderCoranHome() {
       </div>
     </main>
     ${renderBottomNav('coran')}`;
-
-  generateMissingGlosses(surahs);
 }
 
-function surahRow(meta, surah, memorized, known) {
-  const mem = surah.verses.filter(v => memorized.has(`${meta.id}:${v.n}`)).length;
+function surahRow(meta, memorized, known) {
+  const mem = Array.from({ length: meta.verses }, (_, i) => i + 1).filter(n => memorized.has(`${meta.id}:${n}`)).length;
   const memPct = Math.round((mem / meta.verses) * 100);
-  const comp = comprehension(surah, known);
+  const comp = comprehension(meta, known);
   return `
     <li>
       <button class="qh-row pressable" data-navigate="/coran/${meta.id}">
@@ -118,39 +113,12 @@ function surahRow(meta, surah, memorized, known) {
     </li>`;
 }
 
-function nextTarget(surahs, byId, memorized) {
+function nextTarget(surahs, memorized) {
   for (const meta of surahs) {
-    const s = byId.get(meta.id);
-    const v = s.verses.find(x => !memorized.has(`${meta.id}:${x.n}`));
-    if (v) return { surah: s, verse: v.n };
+    for (let n = 1; n <= meta.verses; n++) {
+      if (!memorized.has(`${meta.id}:${n}`)) return { surah: meta, verse: n };
+    }
   }
   return null;
-}
-
-/** Génère en arrière-plan les sens mot à mot en français qui manquent (une fois pour toutes). */
-async function generateMissingGlosses(surahs) {
-  const account = store.get('account') ?? await accountReady;
-  if (_bgRunning || !account?.ai) return;
-  const missing = surahs.filter(s => !cachedFr(s.id));
-  if (!missing.length) return;
-  _bgRunning = true;
-  const el = () => document.getElementById('qh-gloss');
-  let done = surahs.length - missing.length;
-  const show = () => {
-    const box = el();
-    if (!box) return;
-    box.hidden = false;
-    box.innerHTML = `${icon('sparkles')}<span>Préparation du sens des mots en français… <b>${done}/${surahs.length}</b></span>${progressBar((done / surahs.length) * 100, 'progress--thin')}`;
-  };
-  show();
-  for (const s of missing) {
-    const ok = await fetchFr(s.id);
-    if (!ok) break; // IA indisponible : on réessaiera à la prochaine visite
-    done++;
-    show();
-  }
-  const box = el();
-  if (box) box.hidden = true;
-  _bgRunning = false;
 }
 
