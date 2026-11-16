@@ -27,8 +27,8 @@
   // Cloudflare Access protège tout le domaine ; le Worker revérifie le JWT pour /api/*.
   // ACCESS_TEAM_DOMAIN : <équipe>.cloudflareaccess.com — ACCESS_AUD : « Application Audience (AUD) Tag ».
   "vars": {
-    "ACCESS_TEAM_DOMAIN": "",
-    "ACCESS_AUD": "",
+    "ACCESS_TEAM_DOMAIN": "gentle-dream-6577.cloudflareaccess.com",
+    "ACCESS_AUD": "f2a7791f9561484f001de1d194bdf63c564513c6e4796d6453b511d54ba0e2e1",
     "TUTOR_MODEL": "claude-opus-5-5"
   },
 
