@@ -26,8 +26,8 @@ const SCHEMA = {
       type: 'array',
       items: {
         type: 'object',
-        properties: { lemma: { type: 'string' }, fr: { type: 'string' } },
-        required: ['lemma', 'fr'],
+        properties: { i: { type: 'integer' }, fr: { type: 'string' } },
+        required: ['i', 'fr'],
         additionalProperties: false,
       },
     },
@@ -66,7 +66,9 @@ export async function translatePendingLemmas(env) {
 }
 
 async function translateBatch(client, env, rows) {
-  const lines = rows.map(r => `${r.lemma} | ${r.root || '—'} | ${r.pos || ''} | ${r.en || ''}`);
+  // Chaque lemme est identifié par son numéro : le modèle peut renvoyer l'arabe avec une graphie
+  // légèrement différente (ordre des voyelles, caractères invisibles), le numéro, lui, est fiable.
+  const lines = rows.map((r, i) => `${i} | ${r.lemma} | ${r.root || '—'} | ${r.pos || ''} | ${r.en || ''}`);
   let response;
   try {
     response = await client.beta.messages.create({
@@ -75,7 +77,7 @@ async function translateBatch(client, env, rows) {
       betas: ['server-side-fallback-2026-07-01'],
       fallbacks: 'default',
       system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: `LEMMES (lemme | racine | nature | anglais) :\n${lines.join('\n')}` }],
+      messages: [{ role: 'user', content: `LEMMES (i | lemme | racine | nature | anglais) — réponds avec le numéro i de chaque lemme :\n${lines.join('\n')}` }],
       output_config: { effort: 'low', format: { type: 'json_schema', schema: SCHEMA } },
     });
   } catch (err) {
@@ -86,10 +88,9 @@ async function translateBatch(client, env, rows) {
     throw new Error(`lexique : arrêt ${response.stop_reason}`);
   }
   const parsed = JSON.parse(response.content.filter(b => b.type === 'text').map(b => b.text).join(''));
-  const wanted = new Set(rows.map(r => r.lemma));
   const out = {};
-  for (const { lemma, fr } of parsed.lemmas || []) {
-    if (wanted.has(lemma) && typeof fr === 'string' && fr.trim()) out[lemma] = fr.trim();
+  for (const { i, fr } of parsed.lemmas || []) {
+    if (Number.isInteger(i) && rows[i] && typeof fr === 'string' && fr.trim()) out[rows[i].lemma] = fr.trim();
   }
   return out;
 }
