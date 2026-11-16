@@ -11,18 +11,14 @@ import { playWord } from '../audio.js';
 import { icon } from '../icons.js';
 import { progressBar, ring, showFeedback, haptic, confetti } from '../ui.js';
 import { recordActivity } from '../activity.js';
+import { ensureAllDecks } from '../decks.js';
 
 export const $app = () => document.getElementById('app');
 
 // ── Données ───────────────────────────────────────────────────────
 
 export async function ensureDecks() {
-  if (store.get('decks')) return store.get('decks');
-  const course = store.get('currentCourse');
-  if (!course) return [];
-  const data = await fetch(course.decksFile).then(r => r.json());
-  store.set('decks', data.decks);
-  return data.decks;
+  return ensureAllDecks();
 }
 
 // Identifiants de themes.json qui ne correspondent pas aux decks générés
@@ -56,8 +52,9 @@ export async function resolveDeck(params) {
 }
 
 export function srsStats(deck, srsEntries) {
-  const prefix = deck.id + ':';
-  const mine = srsEntries.filter(e => e.cardId.startsWith(prefix));
+  // Par identifiants de cartes (et non par préfixe) : une carte du Coran est partagée entre sourates
+  const ids = new Set(deck.cards.map(c => c.id));
+  const mine = srsEntries.filter(e => ids.has(e.cardId));
   const acquired = mine.filter(e => e.box >= 4).length;
   const learning = mine.filter(e => e.box >= 1 && e.box <= 3).length;
   const total = deck.cards.length;

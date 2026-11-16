@@ -7,12 +7,12 @@ const NAV_ITEMS = [
   { id: 'home',          path: '/home',          icon: 'home',       label: 'Accueil' },
   { id: 'parcours',      path: '/parcours',      icon: 'route',      label: 'Parcours' },
   { id: 'mots',          path: '/mots',          icon: 'layers',     label: 'Mots' },
-  { id: 'conversations', path: '/conversations', icon: 'messages',   label: 'Dialogues' },
+  { id: 'coran',         path: '/coran',         icon: 'book-open',  label: 'Coran' },
   { id: 'revision',      path: '/revision',      icon: 'refresh-cw', label: 'Révision' },
 ];
 
 /**
- * @param {string} activeId - 'home'|'parcours'|'mots'|'conversations'|'revision' (ou 'profil' : aucun actif)
+ * @param {string} activeId - 'home'|'parcours'|'mots'|'coran'|'revision' (autre valeur : aucun onglet actif)
  */
 export function renderBottomNav(activeId) {
   const due = store.get('dueCount') || 0;

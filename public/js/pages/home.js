@@ -10,6 +10,8 @@ import { ring, progressBar, greeting, animateCount } from '../ui.js';
 import { playWord } from '../audio.js';
 import { liveStreak, todayXP, last7Days, dayKey, DAILY_GOAL_DEFAULT } from '../activity.js';
 import { getParcoursState, getDuePhrases } from '../parcours.js';
+import { ensureAllDecks } from '../decks.js';
+import { loadQuranIndex, learningOrder, memorizedVerses, dueVerses } from '../quran.js';
 
 const $app = () => document.getElementById('app');
 
@@ -24,13 +26,16 @@ export async function renderHome() {
   const course = store.get('currentCourse');
   if (!course) { navigate('/'); return; }
 
-  const [dueWords, stats, parcours, duePhrases] = await Promise.all([
+  const [dueWords, stats, parcours, duePhrases, quranIndex, memorized, dueV] = await Promise.all([
     db.getDueWords(course.id),
     db.getStats(course.id),
     getParcoursState(),
     getDuePhrases(),
+    loadQuranIndex().catch(() => null),
+    memorizedVerses().catch(() => new Set()),
+    dueVerses().catch(() => []),
   ]);
-  const dueTotal = dueWords.length + duePhrases.length;
+  const dueTotal = dueWords.length + duePhrases.length + dueV.length;
   store.set('dueCount', dueTotal);
 
   const g = greeting();
@@ -56,7 +61,8 @@ export async function renderHome() {
       <div class="stagger">
         ${heroCard(parcours)}
         ${goalCard(xp, goal, stats)}
-        ${dueTotal > 0 ? reviewCard(dueWords.length, duePhrases.length) : ''}
+        ${dueTotal > 0 ? reviewCard(dueWords.length, duePhrases.length, dueV.length) : ''}
+        ${quranIndex ? quranCard(quranIndex, memorized) : ''}
         ${tutorCard()}
         <section class="section">
           <div class="section__head"><h2 class="section__title">Explorer</h2></div>
@@ -134,9 +140,31 @@ function goalCard(xp, goal, stats) {
     </section>`;
 }
 
-function reviewCard(words, phrases) {
-  const total = words + phrases;
-  const parts = [words ? `${words} mot${words > 1 ? 's' : ''}` : '', phrases ? `${phrases} phrase${phrases > 1 ? 's' : ''}` : ''].filter(Boolean).join(' · ');
+function quranCard(index, memorized) {
+  const surahs = learningOrder(index.surahs);
+  const total = surahs.reduce((n, s) => n + s.verses, 0);
+  let next = null;
+  for (const s of surahs) {
+    for (let v = 1; v <= s.verses; v++) {
+      if (!memorized.has(`${s.id}:${v}`)) { next = { s, v }; break; }
+    }
+    if (next) break;
+  }
+  return `
+    <button class="quran-card pressable" data-navigate="${next ? `/coran/${next.s.id}/hifz` : '/coran'}">
+      <span class="quran-card__ar" lang="ar">${next ? next.s.nameAr : 'القُرْآن'}</span>
+      <span class="quran-card__body">
+        <span class="quran-card__eyebrow">${icon('book-open')} Coran · ${memorized.size}/${total} versets</span>
+        <span class="quran-card__title">${next ? `${next.s.name} · verset ${next.v}` : 'Tout est mémorisé'}</span>
+        <span class="quran-card__meta">Chaque verset mémorisé ajoute ses mots à tes révisions</span>
+      </span>
+      <span class="ai-card__go">${icon('arrow-right')}</span>
+    </button>`;
+}
+
+function reviewCard(words, phrases, verses = 0) {
+  const total = words + phrases + verses;
+  const parts = [words ? `${words} mot${words > 1 ? 's' : ''}` : '', phrases ? `${phrases} phrase${phrases > 1 ? 's' : ''}` : '', verses ? `${verses} verset${verses > 1 ? 's' : ''}` : ''].filter(Boolean).join(' · ');
   return `
     <button class="row review-row pressable" data-navigate="/revision">
       <span class="row__icon">${icon('refresh-cw')}</span>
@@ -173,12 +201,7 @@ function exploreTile(t) {
 // ── Mot du jour ───────────────────────────────────────────────────
 async function loadWordOfTheDay(course) {
   try {
-    let decks = store.get('decks');
-    if (!decks) {
-      const data = await fetch(course.decksFile).then(r => r.json());
-      decks = data.decks;
-      store.set('decks', decks);
-    }
+    const decks = await ensureAllDecks();
     const pool = decks.filter(d => !d.source).flatMap(d => d.cards.map(c => ({ ...c, deck: d })));
     if (!pool.length) return;
     const seed = [...dayKey()].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7);

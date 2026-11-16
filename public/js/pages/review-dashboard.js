@@ -11,6 +11,7 @@ import { icon } from '../icons.js';
 import { ring, animateCount, toast, haptic } from '../ui.js';
 import { liveStreak, last7Days, todayXP, DAILY_GOAL_DEFAULT } from '../activity.js';
 import { loadDueCards } from './review-session.js';
+import { dueVerses } from '../quran.js';
 
 const $app = () => document.getElementById('app');
 
@@ -30,11 +31,12 @@ export async function renderReviewDashboard() {
   const course = store.get('currentCourse');
   if (!course) { navigate('/'); return; }
 
-  const [srsAll, stats, dueEntries, parcoursDue] = await Promise.all([
+  const [srsAll, stats, dueEntries, parcoursDue, versesDue] = await Promise.all([
     db.getSRS(course.id),
     db.getStats(course.id),
     db.getDueWords(course.id),
     db.getDueWords('parcours').catch(() => []),
+    dueVerses().catch(() => []),
   ]);
 
   const dueCount = dueEntries.length;
@@ -87,6 +89,18 @@ export async function renderReviewDashboard() {
             : 'À jour — continue ton parcours'}</span>
         </span>
         ${parcoursDue.length ? `<span class="badge badge--gold">${parcoursDue.length}</span>` : ''}
+        <span class="row__chev">${icon('chevron-right')}</span>
+      </button>
+
+      <button class="row pressable rv-parcours rv-quran" data-navigate="${versesDue.length ? '/coran/muraja' : '/coran'}">
+        <span class="row__icon" style="--tint:var(--primary-soft);--tint-ink:var(--primary)">${icon('book-open')}</span>
+        <span class="row__body">
+          <span class="row__title">Versets mémorisés · murājaʿa</span>
+          <span class="row__meta">${versesDue.length
+            ? `${versesDue.length} verset${versesDue.length > 1 ? 's' : ''} à réciter`
+            : 'À jour — continue ta mémorisation'}</span>
+        </span>
+        ${versesDue.length ? `<span class="badge badge--primary">${versesDue.length}</span>` : ''}
         <span class="row__chev">${icon('chevron-right')}</span>
       </button>
 

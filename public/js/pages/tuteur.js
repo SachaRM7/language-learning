@@ -9,6 +9,7 @@ import { renderBottomNav } from '../components/bottom-nav.js';
 import { recordActivity } from '../activity.js';
 import { getParcoursState } from '../parcours.js';
 import { accountReady } from '../sync.js';
+import { db } from '../db.js';
 
 const $app = () => document.getElementById('app');
 const SAVE_KEY = 'ha-tutor';
@@ -21,6 +22,7 @@ const SCENARIOS = [
   { id: 'famille',      emoji: '👨‍👩‍👧', title: 'La famille',  desc: 'Parents, frères et sœurs' },
   { id: 'loisirs',      emoji: '⚽', title: 'Les loisirs',       desc: 'Sport, musique, week-end' },
   { id: 'voyage',       emoji: '🧳', title: 'En voyage',         desc: 'Chemin, hôtel, taxi' },
+  { id: 'coran',        emoji: '📖', title: 'Mots du Coran',     desc: 'Réutiliser les mots que tu mémorises' },
 ];
 
 let T = null;
@@ -211,7 +213,7 @@ async function send(userText) {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ scenario: T.scenario, level: T.level, messages: T.messages }),
+      body: JSON.stringify({ scenario: T.scenario, level: T.level, messages: T.messages, focus: T.scenario === 'coran' ? await quranFocus() : [] }),
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(body.message || 'Karim ne répond pas pour le moment.');
@@ -345,6 +347,16 @@ function bindAudio(root) {
     });
   });
   root?.querySelectorAll?.('.msg__reveal').forEach(b => b.addEventListener('click', () => b.classList.add('is-revealed')));
+}
+
+/** Les mots du Coran étudiés le plus récemment (pour que Karim les fasse réutiliser). */
+async function quranFocus() {
+  const course = store.get('currentCourse');
+  const srs = await db.getSRS(course?.id || 'arabic').catch(() => []);
+  return srs.filter(e => e.cardId.startsWith('q:'))
+    .sort((a, b) => (b.lastReview || b.createdAt || '').localeCompare(a.lastReview || a.createdAt || ''))
+    .slice(0, 15)
+    .map(e => e.cardId.slice(2));
 }
 
 // ═════════ Dictée (reconnaissance vocale arabe) ═════════

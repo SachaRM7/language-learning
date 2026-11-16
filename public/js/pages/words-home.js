@@ -19,19 +19,22 @@ export async function renderWordsHome() {
     course ? db.getLessonDecks(course.id) : [],
   ]);
 
+  // Comptage par cartes uniques : un mot du Coran partagé entre sourates ne compte qu'une fois
+  const srsById = new Map(srsAll.map(e => [e.cardId, e]));
+  const countCards = ids => {
+    let acquired = 0, learning = 0;
+    ids.forEach(id => { const e = srsById.get(id); if (e?.box >= 4) acquired++; else if (e?.box >= 1) learning++; });
+    return { total: ids.size, acquired, learning };
+  };
+  const allIds = new Set();
   const themeItems = themes.map(theme => {
     const tDecks = themeDecks(theme, decks, themes);
-    const agg = tDecks.reduce((a, d) => {
-      const st = srsStats(d, srsAll);
-      a.total += st.total; a.acquired += st.acquired; a.learning += st.learning;
-      return a;
-    }, { total: 0, acquired: 0, learning: 0 });
-    return { theme, deckCount: tDecks.length, ...agg };
+    const ids = new Set(tDecks.flatMap(d => d.cards.map(c => c.id)));
+    ids.forEach(id => allIds.add(id));
+    return { theme, deckCount: tDecks.length, ...countCards(ids) };
   }).filter(t => t.deckCount > 0);
 
-  const totalWords = themeItems.reduce((n, t) => n + t.total, 0);
-  const acquired = themeItems.reduce((n, t) => n + t.acquired, 0);
-  const learning = themeItems.reduce((n, t) => n + t.learning, 0);
+  const { total: totalWords, acquired, learning } = countCards(allIds);
   const pct = totalWords ? Math.round(acquired / totalWords * 100) : 0;
 
   $app().innerHTML = `
@@ -183,8 +186,11 @@ export async function renderWordsTheme(params) {
   const srsAll = course ? await db.getSRS(course.id) : [];
 
   const items = themeDecks(theme, decks, themes).map(deck => ({ deck, st: srsStats(deck, srsAll) }));
-  const total = items.reduce((n, i) => n + i.st.total, 0);
-  const acquired = items.reduce((n, i) => n + i.st.acquired, 0);
+  // Cartes uniques (les mots du Coran sont partagés entre sourates)
+  const uniqueIds = new Set(items.flatMap(i => i.deck.cards.map(c => c.id)));
+  const acquiredIds = new Set(srsAll.filter(e => e.box >= 4 && uniqueIds.has(e.cardId)).map(e => e.cardId));
+  const total = uniqueIds.size;
+  const acquired = acquiredIds.size;
   const pct = total ? Math.round(acquired / total * 100) : 0;
 
   $app().innerHTML = `

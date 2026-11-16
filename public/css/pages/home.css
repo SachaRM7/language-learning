@@ -230,3 +230,22 @@
 .ai-card__meta { font-size: var(--fs-xs); opacity: 0.8; font-weight: 600; }
 .ai-card__go { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: rgba(255, 255, 255, 0.16); }
 .ai-card__go .ico { width: 18px; height: 18px; }
+
+/* ── Coran ── */
+.quran-card {
+  position: relative; overflow: hidden; isolation: isolate;
+  display: flex; align-items: center; gap: var(--sp-4);
+  width: 100%; padding: var(--sp-4) var(--sp-5);
+  border-radius: var(--r-lg);
+  background: linear-gradient(135deg, #F3E3BC 0%, #E8CF95 100%);
+  color: #3A2A08; text-align: start;
+  box-shadow: 0 14px 28px -16px rgba(150, 110, 30, 0.6);
+}
+:root[data-theme="dark"] .quran-card { background: linear-gradient(135deg, #3A3018 0%, #2A2210 100%); color: #F6E7C1; }
+.quran-card__ar { font-family: var(--font-quran, var(--font-arabic)); font-size: 1.9rem; line-height: 1.5; flex-shrink: 0; min-width: 64px; text-align: center; }
+.quran-card__body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.quran-card__eyebrow { display: inline-flex; align-items: center; gap: 5px; font-size: var(--fs-2xs); font-weight: 800; opacity: 0.75; }
+.quran-card__eyebrow .ico { width: 13px; height: 13px; }
+.quran-card__title { font-weight: 800; letter-spacing: -0.01em; }
+.quran-card__meta { font-size: var(--fs-xs); opacity: 0.75; font-weight: 600; }
+.quran-card .ai-card__go { background: rgba(0, 0, 0, 0.08); }

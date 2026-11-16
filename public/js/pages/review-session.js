@@ -5,6 +5,7 @@ import { navigate } from '../router.js';
 import { renderHeader } from '../components/header.js';
 import { shuffle, escapeHtml, checkWrittenAnswer } from '../utils.js';
 import { db } from '../db.js';
+import { ensureAllDecks } from '../decks.js';
 import { createSRSEntry, processAnswer } from '../srs.js';
 import { playWord } from '../audio.js';
 import { icon } from '../icons.js';
@@ -16,14 +17,7 @@ let _state = {};
 
 /** Charge les decks du cours (et les decks de leçons) si besoin, puis résout les cartes dues. */
 export async function loadDueCards(course, dueEntries = null) {
-  let decks = store.get('decks');
-  if (!decks || !decks.length) {
-    try {
-      const data = await fetch(course.decksFile).then(r => r.json());
-      decks = data.decks || [];
-    } catch { decks = []; }
-    store.set('decks', decks);
-  }
+  const decks = await ensureAllDecks().catch(() => store.get('decks') || []);
   const lessonDecks = await db.getLessonDecks(course.id).catch(() => []);
   const cardMap = {};
   [...decks, ...lessonDecks.map(e => e.deck)].forEach(deck => {

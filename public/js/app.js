@@ -8,7 +8,7 @@ import { store } from './store.js';
 import { route, startRouter, navigate, getCurrentRoute } from './router.js';
 
 // Pages « de consultation » rafraîchies quand des données arrivent d'un autre appareil
-const BROWSE_ROUTES = ['/home', '/parcours', '/mots', '/conversations', '/revision', '/profil'];
+const BROWSE_ROUTES = ['/home', '/parcours', '/mots', '/conversations', '/revision', '/profil', '/coran'];
 import { renderHome } from './pages/home.js';
 import { renderWordsHome, renderWordsTheme } from './pages/words-home.js';
 import { renderWordsDeck, renderWordsDeckLesson } from './pages/words-deck.js';
@@ -30,6 +30,11 @@ import { renderProfil } from './pages/profil.js';
 import { renderParcoursHome } from './pages/parcours-home.js';
 import { renderParcoursLesson, renderParcoursReview } from './pages/parcours-lesson.js';
 import { renderTutor } from './pages/tuteur.js';
+import { renderCoranHome } from './pages/coran-home.js';
+import { renderCoranSurah } from './pages/coran-surah.js';
+import { renderCoranHifz } from './pages/coran-hifz.js';
+import { renderCoranReview } from './pages/coran-review.js';
+import { stopAudio } from './components/quran-audio.js';
 
 async function init() {
   await db.init();
@@ -74,6 +79,13 @@ async function init() {
   route('/parcours/revision', renderParcoursReview);
   route('/parcours/lecon/:lessonId', renderParcoursLesson);
 
+  // Coran : mémorisation + vocabulaire relié aux racines et à la révision
+  route('/coran', renderCoranHome);
+  route('/coran/muraja', renderCoranReview);
+  route('/coran/:n', renderCoranSurah);
+  route('/coran/:n/hifz', renderCoranHifz);
+  route('/coran/:n/hifz/:v', renderCoranHifz);
+
   // Tuteur IA (Claude, via le Worker)
   route('/tuteur', renderTutor);
 
@@ -109,8 +121,10 @@ async function init() {
   // Phase 5 — Alphabet, Racines, Profil
   route('/alphabet', renderAlphabet);
   route('/racines', renderRoots);
+  route('/racines/:root', renderRoots);
   route('/profil', renderProfil);
 
+  window.addEventListener('hashchange', () => stopAudio());
   startRouter();
 
   // Synchronisation en arrière-plan (Cloudflare D1). Sans Worker, l'app reste 100 % locale.

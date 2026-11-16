@@ -72,6 +72,7 @@ const SCENARIOS = {
   famille: 'La famille : vous parlez de vos familles (parents, frères et sœurs, enfants).',
   loisirs: 'Les loisirs : ce que vous aimez faire le week-end, le sport, la musique, les films.',
   voyage: 'En voyage : l’apprenant arrive dans une ville arabe et demande son chemin, un hôtel, un taxi.',
+  coran: 'Vocabulaire du Coran : l’apprenant mémorise des sourates. Discute de la vie quotidienne en réutilisant naturellement les mots listés (formes simples, sens courant), sans citer de versets ni commenter le texte sacré. Signale dans "vocab" les mots de la liste que tu as utilisés.',
 };
 const LEVELS = new Set(['A1', 'A2', 'B1']);
 const MAX_TURNS = 40;
@@ -87,7 +88,10 @@ export async function handleTutor(request, env) {
   if (!history.length || history[history.length - 1].role !== 'user') throw httpError(400, 'invalid_messages');
 
   // Le contexte variable va dans le premier message utilisateur, pas dans le prompt système (cache).
-  const context = `[Contexte] Niveau : ${level}. Scénario : ${SCENARIOS[scenario]}`;
+  const focus = Array.isArray(body.focus)
+    ? body.focus.filter(w => typeof w === 'string' && /^[\u0600-\u06FF\s]{1,30}$/.test(w)).slice(0, 15)
+    : [];
+  const context = `[Contexte] Niveau : ${level}. Scénario : ${SCENARIOS[scenario]}${focus.length ? `\nMots à réutiliser : ${focus.join('، ')}` : ''}`;
   history[0] = { role: 'user', content: `${context}\n\n${history[0].content}` };
 
   const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });

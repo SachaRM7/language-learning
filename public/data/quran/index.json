@@ -1,0 +1,390 @@
+{
+ "sources": {
+  "text": "Texte et découpage mot à mot : quran.com (API v4)",
+  "translation": "Traduction des versets : Muhammad Hamidullah",
+  "morphology": "Racines et lemmes : Quranic Arabic Corpus v0.4 (corpus.quran.com), GNU GPL — corrections mustafa0x/quran-morphology",
+  "audio": "Récitation : Mishary Rashid Alafasy (quran.com)"
+ },
+ "surahs": [
+  {
+   "id": 1,
+   "name": "Al-Fatihah",
+   "nameAr": "الفاتحة",
+   "nameFr": "L'ouverture",
+   "place": "makkah",
+   "verses": 7,
+   "words": 29,
+   "lemmas": 23
+  },
+  {
+   "id": 78,
+   "name": "An-Naba",
+   "nameAr": "النبإ",
+   "nameFr": "La nouvelle",
+   "place": "makkah",
+   "verses": 40,
+   "words": 173,
+   "lemmas": 124
+  },
+  {
+   "id": 79,
+   "name": "An-Nazi'at",
+   "nameAr": "النازعات",
+   "nameFr": "Ceux qui arrachent",
+   "place": "makkah",
+   "verses": 46,
+   "words": 179,
+   "lemmas": 131
+  },
+  {
+   "id": 80,
+   "name": "'Abasa",
+   "nameAr": "عبس",
+   "nameFr": "Il s'est renfrogné",
+   "place": "makkah",
+   "verses": 42,
+   "words": 133,
+   "lemmas": 105
+  },
+  {
+   "id": 81,
+   "name": "At-Takwir",
+   "nameAr": "التكوير",
+   "nameFr": "L'obscurcissement",
+   "place": "makkah",
+   "verses": 29,
+   "words": 104,
+   "lemmas": 77
+  },
+  {
+   "id": 82,
+   "name": "Al-Infitar",
+   "nameAr": "الإنفطار",
+   "nameFr": "La rupture",
+   "place": "makkah",
+   "verses": 19,
+   "words": 80,
+   "lemmas": 52
+  },
+  {
+   "id": 83,
+   "name": "Al-Mutaffifin",
+   "nameAr": "المطففين",
+   "nameFr": "Les fraudeurs",
+   "place": "makkah",
+   "verses": 36,
+   "words": 169,
+   "lemmas": 96
+  },
+  {
+   "id": 84,
+   "name": "Al-Inshiqaq",
+   "nameAr": "الإنشقاق",
+   "nameFr": "La déchirure",
+   "place": "makkah",
+   "verses": 25,
+   "words": 107,
+   "lemmas": 77
+  },
+  {
+   "id": 85,
+   "name": "Al-Buruj",
+   "nameAr": "البروج",
+   "nameFr": "Les constellations",
+   "place": "makkah",
+   "verses": 22,
+   "words": 109,
+   "lemmas": 84
+  },
+  {
+   "id": 86,
+   "name": "At-Tariq",
+   "nameAr": "الطارق",
+   "nameFr": "L'astre nocturne",
+   "place": "makkah",
+   "verses": 17,
+   "words": 61,
+   "lemmas": 45
+  },
+  {
+   "id": 87,
+   "name": "Al-A'la",
+   "nameAr": "الأعلى",
+   "nameFr": "Le Très-Haut",
+   "place": "makkah",
+   "verses": 19,
+   "words": 72,
+   "lemmas": 60
+  },
+  {
+   "id": 88,
+   "name": "Al-Ghashiyah",
+   "nameAr": "الغاشية",
+   "nameFr": "L'enveloppante",
+   "place": "makkah",
+   "verses": 26,
+   "words": 92,
+   "lemmas": 69
+  },
+  {
+   "id": 89,
+   "name": "Al-Fajr",
+   "nameAr": "الفجر",
+   "nameFr": "L'aube",
+   "place": "makkah",
+   "verses": 30,
+   "words": 137,
+   "lemmas": 94
+  },
+  {
+   "id": 90,
+   "name": "Al-Balad",
+   "nameAr": "البلد",
+   "nameFr": "La cité",
+   "place": "makkah",
+   "verses": 20,
+   "words": 82,
+   "lemmas": 63
+  },
+  {
+   "id": 91,
+   "name": "Ash-Shams",
+   "nameAr": "الشمس",
+   "nameFr": "Le soleil",
+   "place": "makkah",
+   "verses": 15,
+   "words": 54,
+   "lemmas": 45
+  },
+  {
+   "id": 92,
+   "name": "Al-Layl",
+   "nameAr": "الليل",
+   "nameFr": "La nuit",
+   "place": "makkah",
+   "verses": 21,
+   "words": 71,
+   "lemmas": 57
+  },
+  {
+   "id": 93,
+   "name": "Ad-Duhaa",
+   "nameAr": "الضحى",
+   "nameFr": "Le jour montant",
+   "place": "makkah",
+   "verses": 11,
+   "words": 40,
+   "lemmas": 31
+  },
+  {
+   "id": 94,
+   "name": "Ash-Sharh",
+   "nameAr": "الشرح",
+   "nameFr": "L'ouverture",
+   "place": "makkah",
+   "verses": 8,
+   "words": 27,
+   "lemmas": 22
+  },
+  {
+   "id": 95,
+   "name": "At-Tin",
+   "nameAr": "التين",
+   "nameFr": "Les figues",
+   "place": "makkah",
+   "verses": 8,
+   "words": 34,
+   "lemmas": 34
+  },
+  {
+   "id": 96,
+   "name": "Al-'Alaq",
+   "nameAr": "العلق",
+   "nameFr": "L'adhérence",
+   "place": "makkah",
+   "verses": 19,
+   "words": 72,
+   "lemmas": 49
+  },
+  {
+   "id": 97,
+   "name": "Al-Qadr",
+   "nameAr": "القدر",
+   "nameFr": "La destinée",
+   "place": "makkah",
+   "verses": 5,
+   "words": 30,
+   "lemmas": 23
+  },
+  {
+   "id": 98,
+   "name": "Al-Bayyinah",
+   "nameAr": "البينة",
+   "nameFr": "La preuve",
+   "place": "madinah",
+   "verses": 8,
+   "words": 94,
+   "lemmas": 59
+  },
+  {
+   "id": 99,
+   "name": "Az-Zalzalah",
+   "nameAr": "الزلزلة",
+   "nameFr": "Le séisme",
+   "place": "madinah",
+   "verses": 8,
+   "words": 36,
+   "lemmas": 28
+  },
+  {
+   "id": 100,
+   "name": "Al-'Adiyat",
+   "nameAr": "العاديات",
+   "nameFr": "Les coursiers",
+   "place": "makkah",
+   "verses": 11,
+   "words": 40,
+   "lemmas": 33
+  },
+  {
+   "id": 101,
+   "name": "Al-Qari'ah",
+   "nameAr": "القارعة",
+   "nameFr": "Le fracas",
+   "place": "makkah",
+   "verses": 11,
+   "words": 36,
+   "lemmas": 25
+  },
+  {
+   "id": 102,
+   "name": "At-Takathur",
+   "nameAr": "التكاثر",
+   "nameFr": "La course aux richesses",
+   "place": "makkah",
+   "verses": 8,
+   "words": 28,
+   "lemmas": 19
+  },
+  {
+   "id": 103,
+   "name": "Al-'Asr",
+   "nameAr": "العصر",
+   "nameFr": "Le temps",
+   "place": "makkah",
+   "verses": 3,
+   "words": 14,
+   "lemmas": 13
+  },
+  {
+   "id": 104,
+   "name": "Al-Humazah",
+   "nameAr": "الهمزة",
+   "nameFr": "Les calomniateurs",
+   "place": "makkah",
+   "verses": 9,
+   "words": 33,
+   "lemmas": 27
+  },
+  {
+   "id": 105,
+   "name": "Al-Fil",
+   "nameAr": "الفيل",
+   "nameFr": "L'éléphant",
+   "place": "makkah",
+   "verses": 5,
+   "words": 23,
+   "lemmas": 21
+  },
+  {
+   "id": 106,
+   "name": "Quraysh",
+   "nameAr": "قريش",
+   "nameFr": "Les Quraysh",
+   "place": "makkah",
+   "verses": 4,
+   "words": 17,
+   "lemmas": 15
+  },
+  {
+   "id": 107,
+   "name": "Al-Ma'un",
+   "nameAr": "الماعون",
+   "nameFr": "L'entraide",
+   "place": "makkah",
+   "verses": 7,
+   "words": 25,
+   "lemmas": 21
+  },
+  {
+   "id": 108,
+   "name": "Al-Kawthar",
+   "nameAr": "الكوثر",
+   "nameFr": "L'abondance",
+   "place": "makkah",
+   "verses": 3,
+   "words": 10,
+   "lemmas": 9
+  },
+  {
+   "id": 109,
+   "name": "Al-Kafirun",
+   "nameAr": "الكافرون",
+   "nameFr": "Les mécréants",
+   "place": "makkah",
+   "verses": 6,
+   "words": 26,
+   "lemmas": 12
+  },
+  {
+   "id": 110,
+   "name": "An-Nasr",
+   "nameAr": "النصر",
+   "nameFr": "Le secours",
+   "place": "madinah",
+   "verses": 3,
+   "words": 19,
+   "lemmas": 18
+  },
+  {
+   "id": 111,
+   "name": "Al-Masad",
+   "nameAr": "المسد",
+   "nameFr": "Les fibres",
+   "place": "makkah",
+   "verses": 5,
+   "words": 23,
+   "lemmas": 20
+  },
+  {
+   "id": 112,
+   "name": "Al-Ikhlas",
+   "nameAr": "الإخلاص",
+   "nameFr": "La sincérité",
+   "place": "makkah",
+   "verses": 4,
+   "words": 15,
+   "lemmas": 10
+  },
+  {
+   "id": 113,
+   "name": "Al-Falaq",
+   "nameAr": "الفلق",
+   "nameFr": "L'aube naissante",
+   "place": "makkah",
+   "verses": 5,
+   "words": 23,
+   "lemmas": 16
+  },
+  {
+   "id": 114,
+   "name": "An-Nas",
+   "nameAr": "الناس",
+   "nameFr": "Les humains",
+   "place": "makkah",
+   "verses": 6,
+   "words": 20,
+   "lemmas": 15
+  }
+ ]
+}

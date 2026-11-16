@@ -4,6 +4,7 @@
 import { authenticate } from './auth.js';
 import { handleSync } from './sync.js';
 import { handleTutor } from './tutor.js';
+import { handleQuranFr } from './quran.js';
 import { json } from './http.js';
 import { serveStatic } from './static.js';
 
@@ -24,6 +25,9 @@ export default {
           return await handleSync(request, env, user);
         case 'POST /api/tutor':
           return await handleTutor(request, env, user);
+        case 'GET /api/quran/fr':
+        case 'POST /api/quran/fr':
+          return await handleQuranFr(request, env);
         default:
           return json({ error: 'not_found' }, 404);
       }
