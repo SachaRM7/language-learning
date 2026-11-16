@@ -204,7 +204,7 @@ async function send(userText) {
   }
   T.suggestions = [];
   renderSuggestions();
-  thread.insertAdjacentHTML('beforeend', `<div class="msg msg--them msg--typing" id="tt-typing"><div class="msg__avatar">ك</div><div class="msg__bubble"><span></span><span></span><span></span></div></div>`);
+  thread.insertAdjacentHTML('beforeend', `<div class="msg msg--them msg--typing" id="tt-typing" role="status" aria-label="Karim prépare sa réponse"><div class="msg__avatar">ك</div><div class="msg__bubble"><span></span><span></span><span></span></div></div>`);
   scrollEnd();
   setBusy(true);
 

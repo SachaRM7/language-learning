@@ -23,7 +23,7 @@ test('114 sourates, occurrences exactes et bundle sans sourates', () => {
 });
 function envFor(surah) {
   const writes = [];
-  return { writes, ANTHROPIC_API_KEY: 'test', DB: { prepare(sql) {
+  return { writes, ANTHROPIC_API_KEY: 'test', DB: { async batch() { return []; }, prepare(sql) {
     return { bind(...args) { return {
       async first() { return sql.includes('quran_surah') && args[0] === surah.id ? { data: JSON.stringify(surah) } : null; },
       async run() { writes.push(args); },

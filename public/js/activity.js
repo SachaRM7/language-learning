@@ -28,6 +28,8 @@ export async function recordActivity(courseId, delta = {}) {
   const stats = await db.getStats(courseId);
   const today = dayKey();
   const yesterday = addDays(today, -1);
+  const newDay = stats.lastActiveDate !== today;
+  const previousLevel = Math.floor((stats.totalXP || 0) / 100) + 1;
 
   if (stats.lastActiveDate !== today) {
     stats.currentStreak = stats.lastActiveDate === yesterday ? (stats.currentStreak || 0) + 1 : 1;
@@ -55,6 +57,13 @@ export async function recordActivity(courseId, delta = {}) {
   stats.weeklyActivity[wd] = stats.activityLog[today];
 
   await db.saveStats(courseId, stats);
+  if (typeof window !== 'undefined') {
+    const level = Math.floor(stats.totalXP / 100) + 1;
+    window.dispatchEvent(new CustomEvent('learning:reward', { detail: {
+      xp, todayXP: stats.activityLog[today], newDay, streak: stats.currentStreak,
+      level, levelUp: level > previousLevel,
+    } }));
+  }
   return stats;
 }
 

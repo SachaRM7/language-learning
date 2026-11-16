@@ -41,12 +41,13 @@ export function toast(message, { icon: ic = 'check-circle', duration = 2400 } = 
   setTimeout(() => {
     el.classList.add('is-leaving');
     el.addEventListener('animationend', () => el.remove(), { once: true });
+    setTimeout(() => el.remove(), 400);
   }, duration);
 }
 
 // ── Confettis (canvas léger, ~1.8 s) ──────────────────────────────
 export function confetti({ count = 110, colors } = {}) {
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || document.querySelector('.confetti-canvas')) return;
   const css = getComputedStyle(document.documentElement);
   const palette = colors || [
     css.getPropertyValue('--primary').trim(), css.getPropertyValue('--gold').trim(),
@@ -100,7 +101,7 @@ export function ring(pct, { size = 56, stroke = 6, label = '', color = '' } = {}
       <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
         <circle class="ring__track" cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke-width="${stroke}"/>
         <circle class="ring__bar" cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke-width="${stroke}"
-          stroke-dasharray="${c}" stroke-dashoffset="${off}" ${color ? `style="stroke:${color}"` : ''}/>
+          stroke-dasharray="${c}" stroke-dashoffset="${off}" style="--ring-circumference:${c};${color ? `stroke:${color}` : ''}"/>
       </svg>
       ${label !== '' ? `<span class="ring__label">${label}</span>` : ''}
     </div>`;
@@ -113,17 +114,22 @@ export function progressBar(pct, cls = '') {
 }
 
 // ── Compteur animé ────────────────────────────────────────────────
+const countFrames = new WeakMap();
 export function animateCount(el, to, duration = 700) {
   if (!el) return;
-  const from = 0;
+  cancelAnimationFrame(countFrames.get(el));
+  const from = Number(el.textContent) || 0;
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+  if (reduce.matches) { el.textContent = to; return; }
   const start = performance.now();
   const step = now => {
-    const k = Math.min(1, (now - start) / duration);
-    const eased = 1 - Math.pow(1 - k, 3);
-    el.textContent = Math.round(from + (to - from) * eased);
-    if (k < 1) requestAnimationFrame(step);
+    if (!el.isConnected) return;
+    const k = reduce.matches ? 1 : Math.min(1, (now - start) / duration);
+    el.textContent = Math.round(from + (to - from) * (1 - Math.pow(1 - k, 3)));
+    if (k < 1) countFrames.set(el, requestAnimationFrame(step));
+    else countFrames.delete(el);
   };
-  requestAnimationFrame(step);
+  countFrames.set(el, requestAnimationFrame(step));
 }
 
 // ── Bandeau de feedback (bas d'écran) ─────────────────────────────

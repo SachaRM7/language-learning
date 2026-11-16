@@ -1,6 +1,7 @@
 // js/app.js — Bootstrap : init DB, charger store, démarrer router
 
 import './icons.js';
+import { initMotion } from './motion.js';
 import { db } from './db.js';
 import { applyTheme, bindHeaderScroll } from './ui.js';
 import { initSync, accountReady } from './sync.js';
@@ -38,6 +39,7 @@ import { renderCoranReview } from './pages/coran-review.js';
 import { stopAudio } from './components/quran-audio.js';
 
 async function init() {
+  initMotion();
   await db.init();
 
   const prefs = await db.getPreferences();

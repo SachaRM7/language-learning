@@ -4,7 +4,7 @@
 //   - code (HTML/CSS/JS) et données JSON : network-first → les mises à jour arrivent immédiatement, cache en secours hors-ligne
 //   - images, polices, audio : stale-while-revalidate
 
-const CACHE_VERSION = 'v2.3.0';
+const CACHE_VERSION = 'v2.4.0';
 const CACHE_NAME = `helloarabic-${CACHE_VERSION}`;
 
 const PRECACHE_ASSETS = [
@@ -13,6 +13,8 @@ const PRECACHE_ASSETS = [
   'manifest.json',
   'css/variables.css',
   'css/base.css',
+  'css/motion.css',
+  'js/motion.js',
   'css/components.css',
   'css/layout.css',
   'css/pages/home.css',

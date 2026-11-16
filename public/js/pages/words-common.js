@@ -168,6 +168,7 @@ export function renderResult(o) {
               <div class="stat-tile__label">${escapeHtml(s.label)}</div>
             </div>`).join('')}
         </div>` : ''}
+      ${o.activity ? `<div class="badge badge--gold session-xp">${icon('zap')} +${(o.activity.correct || 0) + (o.activity.lessons || 0) * 5} XP</div>` : ''}
       ${o.extraHtml || ''}
       <div class="result__actions">
         <button class="btn btn--primary btn--block btn--lg" id="btn-restart">${icon('rotate-ccw')}${escapeHtml(o.restartLabel || 'Recommencer')}</button>
