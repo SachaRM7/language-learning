@@ -1,11 +1,16 @@
-// js/pages/conv-exercise.js — Exercices d'une leçon
+// js/pages/conv-exercise.js — Exercices d'une leçon (phrases à trous + répliques)
 
 import { store } from '../store.js';
 import { navigate } from '../router.js';
 import { renderHeader } from '../components/header.js';
+import { buildSpeakers } from '../components/dialogue-line.js';
 import { escapeHtml, shuffle } from '../utils.js';
+import { icon } from '../icons.js';
+import { progressBar, showFeedback, haptic, confetti, animateCount } from '../ui.js';
+import { recordActivity } from '../activity.js';
 import { db } from '../db.js';
 import { createSRSEntry, processAnswer } from '../srs.js';
+import { playWord } from '../audio.js';
 
 const $app = () => document.getElementById('app');
 let _state = {};
@@ -27,193 +32,241 @@ export async function renderConvExercise(params) {
     }
   }
 
-  const fillBlanks = lesson.exercises?.fillBlanks || [];
-  const dialogueBlanks = lesson.exercises?.dialogueBlanks || [];
-  const exercises = shuffle([
-    ...fillBlanks.map(e => ({ ...e, exerciseType: 'fillBlanks' })),
-    ...dialogueBlanks.map(e => ({ ...e, exerciseType: 'dialogueBlanks' })),
-  ]);
-
+  const exercises = _buildExercises(lesson);
   if (!exercises.length) {
     navigate(`/conversations/lecon/${lessonId}`);
     return;
   }
 
   _state = {
-    lesson, lessonId,
-    exercises,
-    current: 0,
-    correct: 0,
-    wrong: 0,
-    answered: false,
+    lesson, lessonId, exercises,
+    speakers: buildSpeakers(lesson),
+    current: 0, correct: 0, wrong: 0,
+    answered: false, recorded: false,
   };
 
   _renderQuestion();
 }
 
-function _renderQuestion() {
-  const { exercises, current, correct, wrong } = _state;
-  const total = exercises.length;
+function _buildExercises(lesson) {
+  const fillBlanks = lesson.exercises?.fillBlanks || [];
+  const dialogueBlanks = lesson.exercises?.dialogueBlanks || [];
+  return shuffle([
+    ...fillBlanks.map(e => ({ ...e, exerciseType: 'fillBlanks' })),
+    ...dialogueBlanks.map(e => ({ ...e, exerciseType: 'dialogueBlanks' })),
+  ]);
+}
 
-  if (current >= total) {
-    _renderCompletion();
-    return;
-  }
+function _renderQuestion() {
+  const { exercises, current } = _state;
+  const total = exercises.length;
+  if (current >= total) { _renderCompletion(); return; }
 
   const ex = exercises[current];
-  const progress = total > 0 ? (current / total) * 100 : 0;
 
   $app().innerHTML = `
-    ${renderHeader({ title: 'Exercices', back: `/conversations/lecon/${_state.lessonId}` })}
-    <main class="page-content">
-      <div class="flash-progress" style="margin-bottom:var(--space-xl)">
-        <span style="color:var(--accent-green);font-weight:600">${correct}</span>
-        <div class="flash-progress__bar"><div class="flash-progress__fill" style="width:${progress}%"></div></div>
-        <span style="color:var(--accent-red);font-weight:600">${wrong}</span>
+    ${renderHeader({ title: _state.lesson.titleFr, close: `/conversations/lecon/${_state.lessonId}` })}
+    <main class="page-content conv-exercise">
+      <div class="session-bar">
+        ${progressBar((current / total) * 100)}
+        <span class="session-bar__count">${current + 1}/${total}</span>
       </div>
-      <div class="learn-container">
-        <div class="exercise-count" style="color:var(--text-tertiary);font-size:var(--text-sm);text-align:center;margin-bottom:var(--space-md)">${current + 1} / ${total}</div>
+      <div class="exercise-card">
         ${ex.exerciseType === 'fillBlanks' ? _renderFillBlank(ex) : _renderDialogueBlank(ex)}
-        <div class="learn-feedback" id="feedback"></div>
-        <button class="primary-btn learn-next-btn" id="btn-next" style="display:none">Suivant</button>
       </div>
     </main>
   `;
 
   _state.answered = false;
   _bindAnswerEvents(ex);
-  feather.replace();
+}
+
+function _blankify(sentence, filler = '') {
+  const parts = escapeHtml(sentence).split(/_{3,}/);
+  if (parts.length < 2) return escapeHtml(sentence);
+  return parts.join(`<span class="exercise-blank ${filler ? 'is-filled' : ''}">${filler ? escapeHtml(filler) : '&nbsp;'}</span>`);
 }
 
 function _renderFillBlank(ex) {
+  const shortChoices = ex.choices.every(c => c.length <= 12);
   return `
-    <div class="learn-question">
-      <div style="color:var(--text-secondary);font-size:var(--text-sm);margin-bottom:var(--space-md)">Complétez la phrase</div>
-      <div class="exercise-sentence text-ar" dir="rtl" style="font-size:1.5rem;margin-bottom:var(--space-sm)">${escapeHtml(ex.sentenceAr)}</div>
-      <div class="exercise-sentence-fr" style="color:var(--text-secondary);margin-bottom:var(--space-xl)">${escapeHtml(ex.sentenceFr)}</div>
-      ${ex.hint ? `<div class="exercise-hint">💡 ${escapeHtml(ex.hint)}</div>` : ''}
+    <div class="exercise-prompt">${icon('pen')} Complète la phrase</div>
+    <div class="exercise-sentence-card">
+      <div class="exercise-sentence text-ar" dir="rtl" lang="ar" id="exercise-sentence">${_blankify(ex.sentenceAr)}</div>
+      <div class="exercise-sentence-fr">${_blankify(ex.sentenceFr)}</div>
+      ${ex.hint ? `
+        <button class="exercise-hint" id="btn-hint" aria-expanded="false">
+          ${icon('lightbulb')}<span class="exercise-hint__label">Indice</span>
+          <span class="exercise-hint__text">${escapeHtml(ex.hint)}</span>
+        </button>` : ''}
     </div>
-    <div class="choice-grid">
-      ${ex.choices.map(c => `<button class="choice-btn" data-value="${escapeHtml(c)}">${escapeHtml(c)}</button>`).join('')}
+    <div class="choice-grid ${shortChoices ? 'choice-grid--2' : ''}">
+      ${ex.choices.map(c => `<button class="choice-btn choice-btn--ar" lang="ar" data-value="${escapeHtml(c)}">${escapeHtml(c)}</button>`).join('')}
     </div>
   `;
 }
 
 function _renderDialogueBlank(ex) {
-  const speaker = _state.lesson.speakers?.[ex.contextSpeaker] || { name: ex.contextSpeaker, color: '#888' };
+  const sp = _state.speakers[ex.contextSpeaker] || { name: ex.contextSpeaker, initial: '?', tint: { c: 'var(--primary)', s: 'var(--primary-soft)' } };
   return `
-    <div class="learn-question">
-      <div style="color:var(--text-secondary);font-size:var(--text-sm);margin-bottom:var(--space-md)">Choisissez la bonne réponse</div>
-      <div class="dialogue-context" style="margin-bottom:var(--space-xl)">
-        <span style="color:${escapeHtml(speaker.color)};font-weight:600;font-size:var(--text-sm)">${escapeHtml(speaker.name)} :</span>
-        <div class="text-ar" dir="rtl" style="font-size:1.4rem;margin-top:var(--space-sm)">${escapeHtml(ex.contextAr)}</div>
-        <div style="color:var(--text-secondary);font-size:var(--text-sm)">${escapeHtml(ex.contextFr)}</div>
+    <div class="exercise-prompt">${icon('message-circle')} Choisis la bonne réplique</div>
+    <div class="exercise-chat">
+      <div class="bubble-row bubble-row--start" style="--sp:${sp.tint.c};--sp-soft:${sp.tint.s}">
+        <div class="bubble-row__avatar" aria-hidden="true">${escapeHtml(sp.initial)}</div>
+        <div class="bubble">
+          <div class="bubble__name">${escapeHtml(sp.name)}</div>
+          <div class="bubble__ar text-ar" dir="rtl" lang="ar">${escapeHtml(ex.contextAr)}</div>
+          <div class="bubble__fr" style="display:block">${escapeHtml(ex.contextFr)}</div>
+        </div>
+        <button class="bubble__play" id="btn-context-audio" aria-label="Écouter">${icon('volume-2')}</button>
+      </div>
+      <div class="bubble-row bubble-row--end exercise-chat__reply" id="reply-slot" style="--sp:var(--primary);--sp-soft:var(--primary-soft)">
+        <div class="bubble bubble--ghost"><span class="typing"><i></i><i></i><i></i></span></div>
       </div>
     </div>
     <div class="choice-grid">
-      ${ex.choices.map(c => `<button class="choice-btn choice-btn--ar" data-value="${escapeHtml(c)}">${escapeHtml(c)}</button>`).join('')}
+      ${ex.choices.map(c => `<button class="choice-btn choice-btn--ar" lang="ar" data-value="${escapeHtml(c)}">${escapeHtml(c)}</button>`).join('')}
     </div>
   `;
+}
+
+function _correctAnswer(ex) {
+  return ex.exerciseType === 'fillBlanks' ? ex.answer : ex.answerAr;
 }
 
 function _bindAnswerEvents(ex) {
-  const correctAnswer = ex.exerciseType === 'fillBlanks' ? ex.answer : ex.answerAr;
+  const correctAnswer = _correctAnswer(ex);
 
-  const handleAnswer = async (isCorrect) => {
-    if (_state.answered) return;
-    _state.answered = true;
-
-    const feedback = document.getElementById('feedback');
-    if (feedback) {
-      feedback.textContent = isCorrect ? '✓ Correct !' : `✗ Réponse : ${correctAnswer}`;
-      feedback.className = `learn-feedback ${isCorrect ? 'learn-feedback--correct' : 'learn-feedback--wrong'}`;
-    }
-
-    if (isCorrect) _state.correct++;
-    else _state.wrong++;
-
-    // Update SRS for vocabulary words if this exercise is linked
-    const course = store.get('currentCourse');
-    if (course && _state.lesson.vocabulary.length) {
-      const srsAll = await db.getSRS(course.id);
-      const srsMap = Object.fromEntries(srsAll.map(e => [e.cardId, e]));
-      // Only update SRS for vocabulary items linked to this exercise
-      const linkedCards = _state.lesson.vocabulary.flatMap(v => v.linkedCards || []);
-      for (const cardId of linkedCards) {
-        const entry = srsMap[cardId] || createSRSEntry(course.id, cardId);
-        await db.updateSRS(course.id, cardId, processAnswer(entry, isCorrect));
-      }
-    }
-
-    const nextBtn = document.getElementById('btn-next');
-    if (nextBtn) nextBtn.style.display = '';
-  };
+  document.getElementById('btn-hint')?.addEventListener('click', e => {
+    const b = e.currentTarget;
+    b.classList.add('is-open');
+    b.setAttribute('aria-expanded', 'true');
+  });
+  document.getElementById('btn-context-audio')?.addEventListener('click', () => playWord(ex.contextAr, 'ar-SA'));
 
   $app().querySelectorAll('.choice-btn').forEach(btn => {
     btn.addEventListener('click', () => {
+      if (_state.answered) return;
       const isCorrect = btn.dataset.value === correctAnswer;
       btn.classList.add(isCorrect ? 'is-correct' : 'is-wrong');
-      if (!isCorrect) {
-        $app().querySelectorAll('.choice-btn').forEach(b => {
-          if (b.dataset.value === correctAnswer) b.classList.add('is-correct');
-        });
-      }
-      $app().querySelectorAll('.choice-btn').forEach(b => b.disabled = true);
-      handleAnswer(isCorrect);
-    });
-  });
-
-  document.getElementById('btn-next')?.addEventListener('click', async () => {
-    _state.current++;
-
-    // Save progress in IndexedDB
-    const course = store.get('currentCourse');
-    if (course) {
-      await db.saveLessonProgress(course.id, _state.lessonId, {
-        exercisesCompleted: _state.current,
-        exercisesTotal: _state.exercises.length,
-        lastAttempt: new Date().toISOString(),
+      $app().querySelectorAll('.choice-btn').forEach(b => {
+        if (b.dataset.value === correctAnswer) b.classList.add('is-correct');
+        b.disabled = true;
       });
-    }
-
-    _renderQuestion();
+      _handleAnswer(ex, isCorrect, correctAnswer);
+    });
   });
 }
 
-function _renderCompletion() {
+async function _handleAnswer(ex, isCorrect, correctAnswer) {
+  _state.answered = true;
+  if (isCorrect) _state.correct++; else _state.wrong++;
+  haptic(isCorrect ? 10 : [20, 30, 20]);
+
+  // Révéler la réponse dans la phrase ou dans la conversation
+  if (ex.exerciseType === 'fillBlanks') {
+    const s = document.getElementById('exercise-sentence');
+    if (s) s.innerHTML = _blankify(ex.sentenceAr, correctAnswer);
+  } else {
+    const slot = document.getElementById('reply-slot');
+    if (slot) {
+      slot.innerHTML = `
+        <div class="bubble bubble--me">
+          <div class="bubble__ar text-ar" dir="rtl" lang="ar">${escapeHtml(correctAnswer)}</div>
+          ${ex.answerFr ? `<div class="bubble__fr" style="display:block">${escapeHtml(ex.answerFr)}</div>` : ''}
+        </div>`;
+    }
+  }
+
+  // SRS : mettre à jour les cartes liées au vocabulaire de la leçon
+  _updateLinkedSRS(isCorrect);
+
+  const meaning = ex.answerTranslit || ex.answerFr || '';
+  const answerHtml = `<span class="fb-answer"><span class="text-ar" lang="ar" dir="rtl">${escapeHtml(correctAnswer)}</span>${meaning ? `<span class="fb-answer__sub">${escapeHtml(meaning)}</span>` : ''}</span>`;
+  const html = isCorrect ? answerHtml : `<span class="fb-answer__label">Bonne réponse</span>${answerHtml}`;
+
+  const isLast = _state.current + 1 >= _state.exercises.length;
+  await showFeedback({ correct: isCorrect, html, cta: isLast ? 'Voir mon score' : 'Continuer' });
+
+  _state.current++;
+  const course = store.get('currentCourse');
+  if (course) {
+    const prev = await db.getLessonProgress(course.id, _state.lessonId).catch(() => null);
+    await db.saveLessonProgress(course.id, _state.lessonId, {
+      ...(prev || {}),
+      exercisesCompleted: Math.max(_state.current, prev?.exercisesCompleted && prev.exercisesTotal === _state.exercises.length ? prev.exercisesCompleted : 0),
+      exercisesTotal: _state.exercises.length,
+      lastAttempt: new Date().toISOString(),
+    });
+  }
+  _renderQuestion();
+}
+
+async function _updateLinkedSRS(isCorrect) {
+  const course = store.get('currentCourse');
+  const vocab = _state.lesson.vocabulary || [];
+  if (!course || !vocab.length) return;
+  const linkedCards = vocab.flatMap(v => v.linkedCards || []);
+  if (!linkedCards.length) return;
+  try {
+    const srsAll = await db.getSRS(course.id);
+    const srsMap = Object.fromEntries(srsAll.map(e => [e.cardId, e]));
+    for (const cardId of linkedCards) {
+      const entry = srsMap[cardId] || createSRSEntry(course.id, cardId);
+      await db.updateSRS(course.id, cardId, processAnswer(entry, isCorrect));
+    }
+  } catch { /* non bloquant */ }
+}
+
+async function _renderCompletion() {
   const { correct, wrong, lessonId } = _state;
   const total = correct + wrong;
   const pct = total ? Math.round((correct / total) * 100) : 0;
+  const tier = pct === 100 ? { e: '🏆', t: 'Sans faute !', s: 'Tu maîtrises ce dialogue.' }
+    : pct >= 80 ? { e: '🌟', t: 'Excellent !', s: 'Encore un petit effort pour le sans-faute.' }
+    : pct >= 50 ? { e: '💪', t: 'Bien joué !', s: 'Réécoute le dialogue puis retente ta chance.' }
+    : { e: '🌱', t: 'Continue !', s: 'Chaque essai te rapproche de la maîtrise.' };
+
+  const course = store.get('currentCourse');
+  if (course && !_state.recorded) {
+    _state.recorded = true;
+    recordActivity(course.id, { correct, wrong, lessons: 1 }).catch(() => {});
+    db.getLessonProgress(course.id, lessonId).then(prev => db.saveLessonProgress(course.id, lessonId, {
+      ...(prev || {}),
+      exercisesCompleted: _state.exercises.length,
+      exercisesTotal: _state.exercises.length,
+      lastScore: pct,
+      bestScore: Math.max(pct, prev?.bestScore || 0),
+      lastAttempt: new Date().toISOString(),
+    })).catch(() => {});
+  }
 
   $app().innerHTML = `
-    ${renderHeader({ title: 'Terminé !', back: `/conversations/lecon/${lessonId}` })}
-    <div class="completion">
-      <div class="completion__icon">${pct >= 80 ? '🏆' : '✏️'}</div>
-      <div class="completion__title">${pct}% de réussite</div>
-      <div class="completion__stats">
-        <div class="completion__stat-item">
-          <div class="completion__stat-value" style="color:var(--accent-green)">${correct}</div>
-          <div class="completion__stat-label">Corrects</div>
-        </div>
-        <div class="completion__stat-item">
-          <div class="completion__stat-value" style="color:var(--accent-red)">${wrong}</div>
-          <div class="completion__stat-label">Erreurs</div>
-        </div>
+    <main class="result conv-result">
+      <div class="result__emoji">${tier.e}</div>
+      <h1 class="result__title">${tier.t}</h1>
+      <p class="result__subtitle">${tier.s}</p>
+      <div class="conv-result__score">
+        <span class="conv-result__pct"><span id="score-count">0</span>%</span>
+        <span class="conv-result__label">de bonnes réponses</span>
       </div>
-      <div class="completion__actions">
-        <button class="primary-btn" id="btn-restart">Recommencer</button>
-        <button class="secondary-btn" data-navigate="/conversations/lecon/${lessonId}">Retour à la leçon</button>
+      <div class="result__stats">
+        <div class="stat-tile"><div class="stat-tile__value" style="color:var(--success)">${correct}</div><div class="stat-tile__label">Correctes</div></div>
+        <div class="stat-tile"><div class="stat-tile__value" style="color:var(--danger)">${wrong}</div><div class="stat-tile__label">Erreurs</div></div>
+        <div class="stat-tile"><div class="stat-tile__value" style="color:var(--gold)">+${correct + 5}</div><div class="stat-tile__label">XP</div></div>
       </div>
-    </div>
+      <div class="result__actions">
+        <button class="btn btn--primary btn--block btn--lg" data-navigate="/conversations/lecon/${escapeHtml(lessonId)}">${icon('check')}<span>Terminer</span></button>
+        <button class="btn btn--secondary btn--block" id="btn-restart">${icon('rotate-ccw')}<span>Recommencer</span></button>
+      </div>
+    </main>
   `;
 
+  animateCount(document.getElementById('score-count'), pct, 900);
+  if (pct >= 80) setTimeout(() => confetti(), 250);
+
   document.getElementById('btn-restart')?.addEventListener('click', () => {
-    _state.current = 0;
-    _state.correct = 0;
-    _state.wrong = 0;
-    _state.exercises = shuffle([..._state.exercises]);
+    _state = { ..._state, current: 0, correct: 0, wrong: 0, recorded: false, exercises: _buildExercises(_state.lesson) };
     _renderQuestion();
   });
-
-  feather.replace();
 }

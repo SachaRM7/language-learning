@@ -1,4 +1,4 @@
-// js/pages/words-home.js — Themes et liste de decks
+// js/pages/words-home.js — Bibliothèque de vocabulaire : thèmes, decks de leçons, recherche
 
 import { store } from '../store.js';
 import { navigate } from '../router.js';
@@ -6,149 +6,224 @@ import { renderHeader } from '../components/header.js';
 import { renderBottomNav } from '../components/bottom-nav.js';
 import { escapeHtml } from '../utils.js';
 import { db } from '../db.js';
-
-const $app = () => document.getElementById('app');
-
-async function loadDecks() {
-  if (store.get('decks')) return;
-  const course = store.get('currentCourse');
-  if (!course) return;
-  const data = await fetch(course.decksFile).then(r => r.json());
-  store.set('decks', data.decks);
-}
+import { icon } from '../icons.js';
+import { ring, progressBar, toast } from '../ui.js';
+import { $app, ensureDecks, themeDecks, srsStats, deckEmoji, tintStyle, speak } from './words-common.js';
 
 export async function renderWordsHome() {
-  await loadDecks();
+  const decks = await ensureDecks();
   const course = store.get('currentCourse');
   const themes = store.get('themes') || [];
-  const decks = store.get('decks') || [];
+  const [srsAll, lessonDeckEntries] = await Promise.all([
+    course ? db.getSRS(course.id) : [],
+    course ? db.getLessonDecks(course.id) : [],
+  ]);
 
   const themeItems = themes.map(theme => {
-    const themeDecks = decks.filter(d => theme.decks.includes(d.id));
-    const totalCards = themeDecks.reduce((n, d) => n + d.cards.length, 0);
-    return { theme, deckCount: themeDecks.length, totalCards };
-  });
+    const tDecks = themeDecks(theme, decks, themes);
+    const agg = tDecks.reduce((a, d) => {
+      const st = srsStats(d, srsAll);
+      a.total += st.total; a.acquired += st.acquired; a.learning += st.learning;
+      return a;
+    }, { total: 0, acquired: 0, learning: 0 });
+    return { theme, deckCount: tDecks.length, ...agg };
+  }).filter(t => t.deckCount > 0);
 
-  // Charger les decks de lecons depuis IndexedDB
-  const lessonDeckEntries = course ? await db.getLessonDecks(course.id) : [];
+  const totalWords = themeItems.reduce((n, t) => n + t.total, 0);
+  const acquired = themeItems.reduce((n, t) => n + t.acquired, 0);
+  const learning = themeItems.reduce((n, t) => n + t.learning, 0);
+  const pct = totalWords ? Math.round(acquired / totalWords * 100) : 0;
 
   $app().innerHTML = `
-    ${renderHeader({ title: `${course?.flag ?? ''} Vocabulaire`, back: '/home' })}
-    <main class="page-content page-content--nav">
-      ${lessonDeckEntries.length > 0 ? `
-        <div class="lesson-decks-section">
-          <div class="lesson-decks-section__title">
-            <i data-feather="message-square"></i>
-            Mots des lecons
-          </div>
-          <div class="deck-grid">
-            ${lessonDeckEntries.map(entry => `
-              <div class="deck-card deck-card--lesson"
-                   data-lesson-id="${escapeHtml(entry.lessonId)}"
-                   role="button" tabindex="0">
-                <div>
-                  <div class="deck-card__name">
-                    <span class="deck-card__badge">Lecon</span>
-                    ${escapeHtml(entry.deck.name)}
-                  </div>
-                  <div class="deck-card__meta">${entry.deck.cards.length} cartes</div>
-                </div>
-                <div style="display:flex;align-items:center;gap:var(--space-sm)">
-                  <button class="deck-card__delete"
-                          data-delete-lesson-id="${escapeHtml(entry.lessonId)}"
-                          aria-label="Supprimer">
-                    <i data-feather="trash-2"></i>
-                  </button>
-                  <div class="deck-card__arrow"><i data-feather="chevron-right"></i></div>
-                </div>
-              </div>
-            `).join('')}
+    ${renderHeader({ title: 'Vocabulaire', large: true, eyebrow: `${totalWords} mots · ${themeItems.length} thèmes`, titleAr: 'المفردات' })}
+    <main class="page-content page-content--nav words-home">
+      <section class="words-summary card">
+        ${ring(pct, { size: 64, stroke: 7, label: `${pct}%` })}
+        <div class="words-summary__body">
+          <div class="words-summary__title">${acquired} mot${acquired > 1 ? 's' : ''} acquis</div>
+          <div class="words-summary__meta">
+            <span class="dot dot--gold"></span>${learning} en cours
+            <span class="dot dot--muted"></span>${Math.max(0, totalWords - acquired - learning)} à découvrir
           </div>
         </div>
-      ` : ''}
-      <div class="themes-grid">
-        ${themeItems.map(({ theme, deckCount, totalCards }) => `
-          <div class="theme-card" data-theme-id="${escapeHtml(theme.id)}"
-               role="button" tabindex="0" aria-label="${escapeHtml(theme.name)}"
-               style="--theme-color: ${escapeHtml(theme.color)}">
-            <div class="theme-card__icon">${theme.icon}</div>
-            <div class="theme-card__name">${escapeHtml(theme.name)}</div>
-            <div class="theme-card__name-ar">${escapeHtml(theme.nameAr)}</div>
-            <div class="theme-card__count">${deckCount} decks · ${totalCards} cartes</div>
+      </section>
+
+      <label class="words-search">
+        ${icon('search')}
+        <input id="words-search" type="search" placeholder="Chercher un mot (français ou arabe)…" autocomplete="off" enterkeyhint="search">
+      </label>
+
+      <div id="words-search-results" class="words-search-results" hidden></div>
+
+      <div id="words-browse">
+        ${lessonDeckEntries.length ? `
+          <section class="section">
+            <div class="section__head"><h2 class="section__title">Mots de tes dialogues</h2></div>
+            <div class="deck-grid stagger">
+              ${lessonDeckEntries.map(entry => `
+                <div class="row pressable deck-row" data-lesson-id="${escapeHtml(entry.lessonId)}" role="button" tabindex="0">
+                  <span class="row__icon" style="--tint:var(--info-soft);--tint-ink:var(--info)">${icon('messages')}</span>
+                  <span class="row__body">
+                    <span class="row__title">${escapeHtml(entry.deck.name)}</span>
+                    <span class="row__meta">${entry.deck.cards.length} cartes · ajouté le ${escapeHtml(_fmtDate(entry.createdAt))}</span>
+                  </span>
+                  <button class="icon-btn icon-btn--ghost deck-row__delete" data-delete-lesson-id="${escapeHtml(entry.lessonId)}" aria-label="Supprimer ce deck">${icon('trash-2')}</button>
+                </div>`).join('')}
+            </div>
+          </section>` : ''}
+
+        <section class="section">
+          <div class="section__head"><h2 class="section__title">Thèmes</h2></div>
+          <div class="themes-grid themes-bento stagger">
+            ${themeItems.map((t, i) => _themeCard(t, i)).join('')}
           </div>
-        `).join('')}
+        </section>
       </div>
     </main>
     ${renderBottomNav('mots')}
   `;
 
-  // Lesson deck clicks
-  $app().querySelectorAll('.deck-card--lesson').forEach(el => {
-    el.addEventListener('click', e => {
-      if (e.target.closest('.deck-card__delete')) return;
-      navigate(`/mots/lecons/${el.dataset.lessonId}`);
-    });
-    el.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        navigate(`/mots/lecons/${el.dataset.lessonId}`);
-      }
-    });
-  });
+  _bindHome(course, decks);
+}
 
-  // Delete lesson deck
-  $app().querySelectorAll('.deck-card__delete').forEach(btn => {
+function _themeCard({ theme, deckCount, total, acquired }, i) {
+  const wide = i % 5 === 0;
+  const pct = total ? Math.round(acquired / total * 100) : 0;
+  return `
+    <article class="theme-card pressable ${wide ? 'theme-card--wide' : ''}" data-theme-id="${escapeHtml(theme.id)}"
+             role="button" tabindex="0" aria-label="${escapeHtml(theme.name)}" style="${tintStyle(theme.color)}">
+      <span class="theme-card__ar" lang="ar" aria-hidden="true">${escapeHtml(theme.nameAr)}</span>
+      <span class="theme-card__icon">${theme.icon}</span>
+      <span class="theme-card__body">
+        <span class="theme-card__name">${escapeHtml(theme.name)}</span>
+        <span class="theme-card__count">${deckCount} decks · ${total} mots</span>
+        <span class="theme-card__progress">${progressBar(pct, 'progress--thin')}<b>${pct}%</b></span>
+      </span>
+    </article>`;
+}
+
+function _fmtDate(d) {
+  try { return new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }); }
+  catch { return d; }
+}
+
+function _bindHome(course, decks) {
+  const root = $app();
+  const activate = (el, fn) => {
+    el.addEventListener('click', fn);
+    el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(e); } });
+  };
+
+  root.querySelectorAll('.theme-card').forEach(el => activate(el, () => navigate(`/mots/${el.dataset.themeId}`)));
+  root.querySelectorAll('.deck-row[data-lesson-id]').forEach(el => activate(el, e => {
+    if (e.target.closest('.deck-row__delete')) return;
+    navigate(`/mots/lecons/${el.dataset.lessonId}`);
+  }));
+  root.querySelectorAll('.deck-row__delete').forEach(btn => {
     btn.addEventListener('click', async e => {
       e.stopPropagation();
       const lessonId = btn.dataset.deleteLessonId;
       await db.deleteLessonDeck(course.id, lessonId);
-      // Supprimer du store aussi
-      const updatedDecks = store.get('decks') || [];
-      store.set('decks', updatedDecks.filter(d => d.id !== `lesson-vocab-${lessonId}`));
+      store.set('decks', (store.get('decks') || []).filter(d => d.id !== `lesson-vocab-${lessonId}`));
+      toast('Deck supprimé', { icon: 'trash-2' });
       renderWordsHome();
     });
   });
 
-  // Theme clicks
-  $app().querySelectorAll('.theme-card').forEach(el => {
-    const go = () => navigate(`/mots/${el.dataset.themeId}`);
-    el.addEventListener('click', go);
-    el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
-  });
+  // Recherche instantanée
+  const input = document.getElementById('words-search');
+  const results = document.getElementById('words-search-results');
+  const browse = document.getElementById('words-browse');
+  const themes = store.get('themes') || [];
+  const index = decks.filter(d => d.source !== 'lesson').flatMap(d => d.cards.map(c => ({ c, d })));
+  const deckTheme = new Map();
+  themes.forEach(t => themeDecks(t, decks, themes).forEach(d => deckTheme.set(d.id, t.id)));
+  const fold = s => (s || '').normalize('NFD').replace(/[̀-ًͯ-ٰٟ]/g, '').toLowerCase();
 
-  feather.replace();
+  let timer;
+  input?.addEventListener('input', () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      const q = fold(input.value.trim());
+      if (q.length < 2) { results.hidden = true; browse.hidden = false; return; }
+      const hits = index.filter(({ c }) => fold(c.back).includes(q) || fold(c.frontPlain || c.front).includes(q) || fold(c.translit).includes(q)).slice(0, 40);
+      browse.hidden = true;
+      results.hidden = false;
+      results.innerHTML = hits.length ? `
+        <div class="section__head"><h2 class="section__title">${hits.length}${hits.length === 40 ? '+' : ''} résultat${hits.length > 1 ? 's' : ''}</h2></div>
+        <div class="deck-grid">
+          ${hits.map(({ c, d }) => `
+            <div class="row word-hit" data-goto="/mots/${escapeHtml(deckTheme.get(d.id) || '')}/${escapeHtml(d.id)}" role="button" tabindex="0">
+              <span class="row__icon word-hit__emoji">${c.emoji || '•'}</span>
+              <span class="row__body">
+                <span class="row__title">${escapeHtml(c.back)}</span>
+                <span class="row__meta">${escapeHtml(d.name)}${c.translit ? ` · <em>${escapeHtml(c.translit)}</em>` : ''}</span>
+              </span>
+              <span class="word-hit__ar" lang="ar">${escapeHtml(c.front)}</span>
+              <button class="icon-btn icon-btn--ghost word-hit__audio" data-say="${escapeHtml(c.front)}" aria-label="Écouter">${icon('volume-2')}</button>
+            </div>`).join('')}
+        </div>` : `
+        <div class="empty"><div class="empty__emoji">🔍</div><div class="empty__title">Aucun mot trouvé</div><p>Essaie une autre orthographe.</p></div>`;
+      results.querySelectorAll('.word-hit').forEach(el => activate(el, e => {
+        const say = e.target.closest('[data-say]');
+        if (say) { e.stopPropagation(); speak(say, say.dataset.say, course.config.frontLang); return; }
+        if (!el.dataset.goto.includes('//')) navigate(el.dataset.goto);
+      }));
+    }, 120);
+  });
 }
 
 export async function renderWordsTheme(params) {
-  await loadDecks();
+  const decks = await ensureDecks();
   const { themeId } = params;
   const themes = store.get('themes') || [];
-  const decks = store.get('decks') || [];
   const theme = themes.find(t => t.id === themeId);
   if (!theme) { navigate('/mots'); return; }
+  const course = store.get('currentCourse');
+  const srsAll = course ? await db.getSRS(course.id) : [];
 
-  const themeDecks = decks.filter(d => theme.decks.includes(d.id));
+  const items = themeDecks(theme, decks, themes).map(deck => ({ deck, st: srsStats(deck, srsAll) }));
+  const total = items.reduce((n, i) => n + i.st.total, 0);
+  const acquired = items.reduce((n, i) => n + i.st.acquired, 0);
+  const pct = total ? Math.round(acquired / total * 100) : 0;
 
   $app().innerHTML = `
-    ${renderHeader({ title: `${theme.icon} ${theme.name}`, back: '/mots' })}
+    ${renderHeader({ title: theme.name, back: '/mots' })}
     <main class="page-content page-content--nav">
-      <div class="deck-grid">
-        ${themeDecks.map(deck => `
-          <div class="deck-card" data-deck-id="${escapeHtml(deck.id)}" role="button" tabindex="0" aria-label="${escapeHtml(deck.name)}">
-            <div>
-              <div class="deck-card__name">${escapeHtml(deck.name)}</div>
-              <div class="deck-card__meta">${deck.cards.length} cartes · 0 acquises</div>
-            </div>
-            <div class="deck-card__arrow"><i data-feather="chevron-right"></i></div>
-          </div>
-        `).join('')}
-      </div>
+      <section class="theme-hero" style="${tintStyle(theme.color)}">
+        <span class="theme-hero__ar" lang="ar" aria-hidden="true">${escapeHtml(theme.nameAr)}</span>
+        <span class="theme-hero__icon">${theme.icon}</span>
+        <div class="theme-hero__name">${escapeHtml(theme.name)}</div>
+        <div class="theme-hero__name-ar" lang="ar">${escapeHtml(theme.nameAr)}</div>
+        <div class="theme-hero__meta">${items.length} decks · ${total} mots · ${acquired} acquis</div>
+        <div class="theme-hero__progress">${progressBar(pct)}</div>
+      </section>
+
+      <section class="section">
+        <div class="section__head"><h2 class="section__title">Decks</h2></div>
+        <div class="deck-grid stagger">
+          ${items.map(({ deck, st }) => `
+            <div class="row pressable deck-row" data-deck-id="${escapeHtml(deck.id)}" role="button" tabindex="0" aria-label="${escapeHtml(deck.name)}">
+              <span class="row__icon deck-row__emoji" style="${tintStyle(theme.color)}">${deckEmoji(deck)}</span>
+              <span class="row__body">
+                <span class="deck-row__top">
+                  <span class="row__title">${escapeHtml(deck.name)}</span>
+                  ${st.pct === 100 ? `<span class="badge badge--success">${icon('check')}Acquis</span>` : ''}
+                </span>
+                <span class="row__meta">${st.total} mots${st.acquired ? ` · ${st.acquired} acquis` : ''}${deck.nameAr ? ` · <span lang="ar" class="deck-row__ar">${escapeHtml(deck.nameAr)}</span>` : ''}</span>
+                ${st.acquired + st.learning > 0 ? `<span class="deck-row__bar">${progressBar(st.pct, 'progress--thin')}</span>` : ''}
+              </span>
+              <span class="row__chev">${icon('chevron-right')}</span>
+            </div>`).join('')}
+        </div>
+      </section>
     </main>
     ${renderBottomNav('mots')}
   `;
 
-  $app().querySelectorAll('.deck-card').forEach(el => {
-    el.addEventListener('click', () => navigate(`/mots/${themeId}/${el.dataset.deckId}`));
+  $app().querySelectorAll('.deck-row').forEach(el => {
+    const go = () => navigate(`/mots/${themeId}/${el.dataset.deckId}`);
+    el.addEventListener('click', go);
+    el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
   });
-  feather.replace();
 }

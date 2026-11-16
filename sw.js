@@ -31,6 +31,8 @@ const PRECACHE_ASSETS = [
   'js/icons.js',
   'js/ui.js',
   'js/activity.js',
+  'js/parcours.js',
+  'js/pages/words-common.js',
   'data/courses.json',
   'data/themes.json',
   'data/parcours.json',

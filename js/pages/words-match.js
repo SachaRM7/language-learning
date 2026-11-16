@@ -1,162 +1,160 @@
-// js/pages/words-match.js — Mode association (match)
+// js/pages/words-match.js — Mode Associer : relier mots arabes et traductions, contre la montre
 
 import { store } from '../store.js';
-import { navigate } from '../router.js';
 import { renderHeader } from '../components/header.js';
 import { shuffle, escapeHtml } from '../utils.js';
+import { icon } from '../icons.js';
+import { haptic } from '../ui.js';
 import { showConfirmModal } from '../components/modal.js';
+import { $app, resolveDeck, sessionBar, setKeyHandler, renderResult } from './words-common.js';
 
-const $app = () => document.getElementById('app');
+const PAIRS = 6;
 let _state = {};
 
-export function renderWordsMatch(params) {
-  const { themeId, deckId, lessonId } = params;
-  const actualDeckId = lessonId ? `lesson-vocab-${lessonId}` : deckId;
-  const backPath = lessonId ? `/mots/lecons/${lessonId}` : `/mots/${themeId}/${deckId}`;
-
-  const deck = (store.get('decks') || []).find(d => d.id === actualDeckId);
-  if (!deck) { navigate(backPath); return; }
+export async function renderWordsMatch(params) {
+  const ctx = await resolveDeck(params);
+  if (!ctx) return;
   const storedPrefs = store.get('preferences') || {};
-  _state = {
-    themeId, deckId: actualDeckId, lessonId, backPath, deck,
-    prefs: { showHarakats: storedPrefs.showHarakats !== false },
-  };
+  if (_state.timerInterval) clearInterval(_state.timerInterval);
+  _state = { ...ctx, prefs: { showHarakats: storedPrefs.showHarakats !== false } };
   _renderIntro();
 }
 
+const _fmt = secs => `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
+const _bestKey = () => `ha-match-best:${_state.deck.id}`;
+function _getBest() { try { return parseInt(localStorage.getItem(_bestKey()), 10) || null; } catch { return null; } }
+function _setBest(v) { try { localStorage.setItem(_bestKey(), String(v)); } catch { /* stockage indisponible */ } }
+
 function _renderIntro() {
-  const { backPath } = _state;
+  setKeyHandler(null);
+  const best = _getBest();
+  const n = Math.min(PAIRS, _state.deck.cards.length);
   $app().innerHTML = `
-    ${renderHeader({ title: 'Associer', back: backPath })}
-    <div class="completion">
-      <div class="completion__icon">&#x1F517;</div>
-      <div class="completion__title">Pret a jouer ?</div>
-      <p style="color:var(--text-secondary);text-align:center">
-        Associe chaque mot arabe a sa traduction francaise.
-      </p>
-      <div class="completion__actions">
-        <button class="primary-btn" id="btn-start">Commencer</button>
-        <button class="secondary-btn" data-navigate="${backPath}">Retour</button>
+    ${renderHeader({ title: 'Associer', close: _state.backPath })}
+    <main class="page-content match-intro">
+      <div class="match-intro__art" aria-hidden="true">
+        <span class="match-intro__tile match-intro__tile--ar" lang="ar">قِطّ</span>
+        <span class="match-intro__link">${icon('link')}</span>
+        <span class="match-intro__tile">chat</span>
       </div>
-    </div>
+      <h2>Prêt à jouer ?</h2>
+      <p>Relie ${n} mots arabes à leur traduction le plus vite possible.</p>
+      ${best ? `<span class="badge badge--gold">${icon('trophy')}Record : ${_fmt(best)}</span>` : ''}
+      <div class="result__actions">
+        <button class="btn btn--primary btn--block btn--lg" id="btn-start">${icon('play')}Commencer</button>
+        <button class="btn btn--ghost btn--block" data-navigate="${escapeHtml(_state.backPath)}">Retour au deck</button>
+      </div>
+    </main>
   `;
   document.getElementById('btn-start')?.addEventListener('click', _startGame);
-  feather.replace();
 }
 
 function _startGame() {
   if (_state.timerInterval) clearInterval(_state.timerInterval);
-  const cards = shuffle([..._state.deck.cards]).slice(0, 8);
+  const cards = shuffle([..._state.deck.cards]).slice(0, PAIRS);
   const showHarakats = _state.prefs.showHarakats;
-  const cells = shuffle([
-    ...cards.map(c => ({ id: c.id, text: (!showHarakats && c.frontPlain) ? c.frontPlain : c.front, type: 'front', pairId: c.id, isAr: true })),
-    ...cards.map(c => ({ id: c.id + '_b', text: c.back, type: 'back', pairId: c.id, isAr: false })),
-  ]);
-
-  _state.cells = cells;
+  _state.left = shuffle(cards.map(c => ({ id: c.id, text: (!showHarakats && c.frontPlain) ? c.frontPlain : c.front, side: 'ar' })));
+  _state.right = shuffle(cards.map(c => ({ id: c.id, text: c.back, side: 'fr' })));
   _state.selected = null;
   _state.matched = new Set();
+  _state.mistakes = 0;
   _state.startTime = Date.now();
   _state.timerInterval = setInterval(_updateTimer, 1000);
-
   _renderGrid();
 }
 
+function _cell(c) {
+  return `<button class="match-cell ${c.side === 'ar' ? 'match-cell--ar' : ''}" data-id="${escapeHtml(c.id)}" data-side="${c.side}" ${c.side === 'ar' ? 'lang="ar"' : ''}>${escapeHtml(c.text)}</button>`;
+}
+
 function _renderGrid() {
-  const { cells, matched, backPath } = _state;
+  const total = _state.left.length;
   $app().innerHTML = `
-    ${renderHeader({ title: 'Associer', back: backPath,
-      actions: [{ id: 'reset', icon: 'refresh-cw', label: 'Recommencer' }] })}
-    <main class="page-content">
-      <div class="match-container">
-        <div class="match-timer" id="match-timer">0:00</div>
-        <div class="match-grid">
-          ${cells.map((cell, i) => `
-            <div class="match-cell ${cell.isAr ? 'match-cell--ar' : ''} ${matched.has(cell.id) ? 'is-matched' : ''}"
-                 data-index="${i}">
-              ${escapeHtml(cell.text)}
-            </div>
-          `).join('')}
-        </div>
+    ${renderHeader({ title: 'Associer', close: _state.backPath,
+      extra: `<span class="match-timer" id="match-timer">${icon('clock')}<span>0:00</span></span>`,
+      actions: [{ id: 'reset', icon: 'rotate-ccw', label: 'Recommencer' }] })}
+    <main class="page-content match" data-words-session>
+      <div id="match-bar">${sessionBar(0, total)}</div>
+      <div class="match-board">
+        <div class="match-col">${_state.left.map(_cell).join('')}</div>
+        <div class="match-col">${_state.right.map(_cell).join('')}</div>
       </div>
+      <p class="match-hint">Touche un mot, puis sa traduction.</p>
     </main>
   `;
+  setKeyHandler(() => {});
 
   document.querySelector('[data-action="reset"]')?.addEventListener('click', () => {
-    showConfirmModal(
-      'Recommencer la session ?',
-      'Ta progression actuelle sera perdue.',
-      () => { clearInterval(_state.timerInterval); _startGame(); }
-    );
+    showConfirmModal('Recommencer la partie ?', 'Le chronomètre repartira de zéro.', _startGame);
   });
-
-  $app().querySelectorAll('.match-cell:not(.is-matched)').forEach(el => {
-    el.addEventListener('click', () => _onCellClick(parseInt(el.dataset.index)));
-  });
+  $app().querySelectorAll('.match-cell').forEach(el => el.addEventListener('click', () => _onCellClick(el)));
 }
 
 function _updateTimer() {
-  const el = document.getElementById('match-timer');
-  if (!el) return;
-  const secs = Math.floor((Date.now() - _state.startTime) / 1000);
-  el.textContent = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
+  const el = document.querySelector('#match-timer span');
+  if (!el) { clearInterval(_state.timerInterval); return; }
+  el.textContent = _fmt(Math.floor((Date.now() - _state.startTime) / 1000));
 }
 
-function _onCellClick(index) {
-  const cell = _state.cells[index];
-  if (_state.matched.has(cell.id)) return;
+function _onCellClick(el) {
+  if (el.classList.contains('is-matched') || el.classList.contains('is-wrong')) return;
+  const prev = _state.selected;
 
-  const el = $app().querySelectorAll('.match-cell')[index];
-
-  if (!_state.selected) {
-    _state.selected = { index, cell };
+  if (!prev) {
+    _state.selected = el;
     el.classList.add('is-selected');
+    haptic(5);
+    return;
+  }
+  if (prev === el) { el.classList.remove('is-selected'); _state.selected = null; return; }
+  if (prev.dataset.side === el.dataset.side) {
+    prev.classList.remove('is-selected');
+    el.classList.add('is-selected');
+    _state.selected = el;
     return;
   }
 
-  const prev = _state.selected;
   _state.selected = null;
-  $app().querySelectorAll('.match-cell').forEach(e => e.classList.remove('is-selected'));
+  prev.classList.remove('is-selected');
 
-  if (prev.index === index) return;
-
-  if (prev.cell.pairId === cell.pairId && prev.cell.type !== cell.type) {
-    _state.matched.add(prev.cell.id);
-    _state.matched.add(cell.id);
-    const prevEl = $app().querySelectorAll('.match-cell')[prev.index];
-    if (prevEl) prevEl.classList.add('is-matched');
-    if (el) el.classList.add('is-matched');
-
-    if (_state.matched.size === _state.cells.length) {
+  if (prev.dataset.id === el.dataset.id) {
+    _state.matched.add(el.dataset.id);
+    [prev, el].forEach(c => { c.classList.add('is-matched'); c.disabled = true; });
+    haptic(12);
+    document.getElementById('match-bar').innerHTML = sessionBar(_state.matched.size, _state.left.length);
+    if (_state.matched.size === _state.left.length) {
       clearInterval(_state.timerInterval);
-      const secs = Math.floor((Date.now() - _state.startTime) / 1000);
-      setTimeout(() => _renderCompletion(secs), 400);
+      const secs = Math.max(1, Math.round((Date.now() - _state.startTime) / 1000));
+      setTimeout(() => _renderCompletion(secs), 500);
     }
   } else {
-    const prevEl = $app().querySelectorAll('.match-cell')[prev.index];
-    if (prevEl) prevEl.classList.add('is-wrong');
-    if (el) el.classList.add('is-wrong');
-    setTimeout(() => {
-      $app().querySelectorAll('.match-cell').forEach(e => e.classList.remove('is-wrong'));
-    }, 500);
+    _state.mistakes++;
+    haptic([20, 30, 20]);
+    [prev, el].forEach(c => c.classList.add('is-wrong'));
+    setTimeout(() => [prev, el].forEach(c => c.classList.remove('is-wrong')), 480);
   }
 }
 
 function _renderCompletion(secs) {
-  const { backPath } = _state;
-  const time = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
-  $app().innerHTML = `
-    ${renderHeader({ title: 'Termine !', back: backPath })}
-    <div class="completion">
-      <div class="completion__icon">&#x1F3C6;</div>
-      <div class="completion__title">Bravo !</div>
-      <p style="color:var(--text-secondary)">Temps : ${time}</p>
-      <div class="completion__actions">
-        <button class="primary-btn" id="btn-restart">Rejouer</button>
-        <button class="secondary-btn" data-navigate="${backPath}">Retour</button>
-      </div>
-    </div>
-  `;
-  document.getElementById('btn-restart')?.addEventListener('click', _startGame);
-  feather.replace();
+  const prevBest = _getBest();
+  const isRecord = !prevBest || secs < prevBest;
+  if (isRecord) _setBest(secs);
+  const pairs = _state.left.length;
+  const accuracy = Math.round(pairs / (pairs + _state.mistakes) * 100);
+
+  renderResult({
+    backPath: _state.backPath,
+    pct: null,
+    emoji: isRecord ? '🏆' : '⚡',
+    title: isRecord ? (prevBest ? 'Nouveau record !' : 'Premier record !') : 'Bien joué !',
+    subtitle: isRecord && prevBest ? `Ancien record : ${_fmt(prevBest)}` : (prevBest ? `Record à battre : ${_fmt(prevBest)}` : ''),
+    stats: [
+      { value: _fmt(secs), label: 'Temps', color: 'var(--primary)' },
+      { value: _state.mistakes, label: 'Erreurs', color: _state.mistakes ? 'var(--danger)' : 'var(--success)' },
+      { value: `${accuracy}%`, label: 'Précision' },
+    ],
+    restartLabel: 'Rejouer',
+    onRestart: _startGame,
+    activity: { correct: pairs, wrong: _state.mistakes, words: pairs },
+  });
 }

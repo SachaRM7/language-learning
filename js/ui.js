@@ -162,7 +162,7 @@ export function hideFeedback() {
   });
 }
 
-const PRAISE = ['Bravo !', 'Excellent !', 'Parfait !', 'Super !', 'Bien joué !', 'ممتاز !'];
+const PRAISE = ['Bravo !', 'Excellent !', 'Parfait !', 'Super !', 'Bien joué !', 'Génial !'];
 export function pickPraise() { return PRAISE[Math.floor(Math.random() * PRAISE.length)]; }
 
 // ── En-tête : ombre au défilement ─────────────────────────────────

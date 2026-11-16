@@ -70,7 +70,8 @@
   font-size: 0.8em;
   color: var(--primary);
   font-weight: 600;
-  margin-inline-start: var(--sp-3);
+  margin-left: var(--sp-3);
+  unicode-bidi: isolate;
   vertical-align: baseline;
   letter-spacing: 0;
 }

@@ -171,6 +171,17 @@ class Database {
     return all.filter(e => e.courseId === courseId);
   }
 
+  /** Efface toute la progression (SRS, leçons, stats, favoris, decks de leçon). Les préférences sont conservées. */
+  async resetProgress() {
+    const stores = ['srs', 'lessonProgress', 'stats', 'favorites', 'lessonDecks'];
+    await new Promise((resolve, reject) => {
+      const tx = this._db.transaction(stores, 'readwrite');
+      stores.forEach(n => tx.objectStore(n).clear());
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
   async deleteLessonDeck(courseId, lessonId) {
     return new Promise((resolve, reject) => {
       const req = this._store('lessonDecks', 'readwrite').delete(`${courseId}:${lessonId}`);
