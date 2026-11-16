@@ -158,8 +158,9 @@ async function translateChunk(client, env, surah, verses) {
   for (const { lemma, fr } of parsed.lemmas || []) {
     if (known.has(lemma) && typeof fr === 'string' && fr.trim()) lemmas[lemma] = fr.trim().slice(0, 60);
   }
-  if (Object.keys(words).length !== flat.length || Object.keys(lemmas).length !== lemmaList.length) {
-    throw httpError(502, 'ai_incomplete');
-  }
+  // Tolère quelques oublis du modèle (complétés par la glose anglaise) plutôt que d'échouer et de tout repayer
+  if (Object.keys(words).length < flat.length * 0.95) throw httpError(502, 'ai_incomplete');
+  verses.forEach(v => v.w.forEach((w, j) => { words[`${v.n}:${j}`] ??= w.en; }));
+  lemmaList.forEach(l => { lemmas[l] ??= lx.glossEn[l] || ''; });
   return { words, lemmas, model: response.model || '' };
 }
