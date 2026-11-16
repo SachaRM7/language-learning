@@ -105,13 +105,13 @@ function isFirstOpen(m, lesson) {
 
 function comingSoon() {
   return `
-    <section class="pc-soon card card--sunk">
-      <div class="pc-soon__emoji">🚧</div>
+    <button class="pc-soon card card--sunk pressable" data-navigate="/tuteur">
+      <div class="pc-soon__emoji">✨</div>
       <div>
-        <div class="pc-soon__title">Bientôt</div>
-        <div class="pc-soon__desc">Les verbes, le passé et le futur, des conversations plus longues…</div>
+        <div class="pc-soon__title">Pour aller plus loin</div>
+        <div class="pc-soon__desc">Mets en pratique avec Karim, ton tuteur IA, dans une conversation libre.</div>
       </div>
-    </section>`;
+    </button>`;
 }
 
 function bindEvents(state) {

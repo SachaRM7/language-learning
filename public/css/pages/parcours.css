@@ -173,7 +173,7 @@
   transform: translate(-50%, -5px) rotate(45deg);
 }
 
-.pc-soon { display: flex; align-items: center; gap: var(--sp-4); }
+.pc-soon { display: flex; align-items: center; gap: var(--sp-4); width: 100%; text-align: start; }
 .pc-soon__emoji { font-size: 2rem; }
 .pc-soon__title { font-weight: 800; }
 .pc-soon__desc { font-size: var(--fs-sm); color: var(--ink-3); }

@@ -828,6 +828,1098 @@
           ]
         }
       ]
+    },
+    {
+      "id": "m4",
+      "title": "Le quotidien",
+      "emoji": "⏰",
+      "requiredMastery": 80,
+      "locked": true,
+      "requires": [
+        "m3"
+      ],
+      "description": "Les verbes au présent : ta journée, tes habitudes, les autres",
+      "lessons": [
+        {
+          "id": "m4-l1",
+          "title": "أَفْعَال - Ce que je fais",
+          "objective": "Dire ce que tu fais avec les verbes au présent",
+          "concepts": [
+            "أَدْرُسُ",
+            "أَعْمَلُ",
+            "أَسْكُنُ"
+          ],
+          "phrases": [
+            {
+              "arabic": "مَاذَا تَفْعَلُ الآنَ؟",
+              "transliteration": "mādhā tafʿalu l-āna?",
+              "translation": "Qu'est-ce que tu fais maintenant ?",
+              "type": "learn",
+              "grammar": "تَفْعَلُ = tu fais (masc.) — le تَـ au début du verbe marque le « tu »",
+              "responses": [
+                {
+                  "arabic": "أَدْرُسُ العَرَبِيَّةَ",
+                  "translation": "J'étudie l'arabe",
+                  "correct": true
+                },
+                {
+                  "arabic": "أَنَا مِنْ فَرَنْسَا",
+                  "translation": "Je suis de France",
+                  "correct": false
+                },
+                {
+                  "arabic": "إِلَى اللِّقَاءِ",
+                  "translation": "À bientôt",
+                  "correct": false
+                }
+              ],
+              "id": "m4-l1:0"
+            },
+            {
+              "arabic": "أَيْنَ تَعْمَلُ؟",
+              "transliteration": "ayna taʿmalu?",
+              "translation": "Où travailles-tu ?",
+              "type": "learn",
+              "grammar": "أَعْمَلُ = je travaille, تَعْمَلُ = tu travailles : le أَ marque le « je »",
+              "responses": [
+                {
+                  "arabic": "أَعْمَلُ فِي شَرِكَةٍ",
+                  "translation": "Je travaille dans une entreprise",
+                  "correct": true
+                },
+                {
+                  "arabic": "أُحِبُّ القَهْوَةَ",
+                  "translation": "J'aime le café",
+                  "correct": false
+                },
+                {
+                  "arabic": "عُمْرِي عِشْرُونَ سَنَةً",
+                  "translation": "J'ai vingt ans",
+                  "correct": false
+                }
+              ],
+              "id": "m4-l1:1"
+            },
+            {
+              "arabic": "أَيْنَ تَسْكُنُ؟",
+              "transliteration": "ayna taskunu?",
+              "translation": "Où habites-tu ?",
+              "type": "learn",
+              "grammar": "أَسْكُنُ فِي… = j'habite à / dans…",
+              "responses": [
+                {
+                  "arabic": "أَسْكُنُ فِي بَارِيسَ",
+                  "translation": "J'habite à Paris",
+                  "correct": true
+                },
+                {
+                  "arabic": "أَنَا بِخَيْرٍ",
+                  "translation": "Je vais bien",
+                  "correct": false
+                },
+                {
+                  "arabic": "اِسْمِي أَحْمَد",
+                  "translation": "Je m'appelle Ahmed",
+                  "correct": false
+                }
+              ],
+              "id": "m4-l1:2"
+            },
+            {
+              "arabic": "هَلْ تَتَكَلَّمُ العَرَبِيَّةَ؟",
+              "transliteration": "hal tatakallamu l-ʿarabiyya?",
+              "translation": "Est-ce que tu parles arabe ?",
+              "type": "learn",
+              "grammar": "هَلْ = est-ce que (question fermée, réponse oui/non)",
+              "responses": [
+                {
+                  "arabic": "نَعَمْ، قَلِيلًا",
+                  "translation": "Oui, un peu",
+                  "correct": true
+                },
+                {
+                  "arabic": "فِي البَيْتِ",
+                  "translation": "À la maison",
+                  "correct": false
+                },
+                {
+                  "arabic": "صَبَاحُ النُّورِ",
+                  "translation": "Bonjour (réponse)",
+                  "correct": false
+                }
+              ],
+              "id": "m4-l1:3"
+            }
+          ]
+        },
+        {
+          "id": "m4-l2",
+          "title": "يَوْمِي - Ma journée",
+          "objective": "Raconter ta routine du matin au soir",
+          "requires": [
+            "m4-l1"
+          ],
+          "concepts": [
+            "أَسْتَيْقِظُ",
+            "أَذْهَبُ",
+            "السَّاعَة"
+          ],
+          "phrases": [
+            {
+              "arabic": "مَتَى تَسْتَيْقِظُ؟",
+              "transliteration": "matā tastayqiẓu?",
+              "translation": "Quand te réveilles-tu ?",
+              "type": "learn",
+              "grammar": "مَتَى = quand ; فِي السَّاعَةِ… = à … heures",
+              "responses": [
+                {
+                  "arabic": "أَسْتَيْقِظُ فِي السَّاعَةِ السَّابِعَةِ",
+                  "translation": "Je me réveille à sept heures",
+                  "correct": true
+                },
+                {
+                  "arabic": "أَسْكُنُ فِي المَدِينَةِ",
+                  "translation": "J'habite en ville",
+                  "correct": false
+                },
+                {
+                  "arabic": "لَا، شُكْرًا",
+                  "translation": "Non, merci",
+                  "correct": false
+                }
+              ],
+              "id": "m4-l2:0"
+            },
+            {
+              "arabic": "كَيْفَ تَذْهَبُ إِلَى العَمَلِ؟",
+              "transliteration": "kayfa tadhhabu ilā l-ʿamal?",
+              "translation": "Comment vas-tu au travail ?",
+              "type": "learn",
+              "grammar": "كَيْفَ = comment ; بِـ + moyen de transport = en (métro, voiture…)",
+              "responses": [
+                {
+                  "arabic": "أَذْهَبُ بِالمِتْرُو",
+                  "translation": "J'y vais en métro",
+                  "correct": true
+                },
+                {
+                  "arabic": "أَذْهَبُ فِي المَسَاءِ",
+                  "translation": "J'y vais le soir",
+                  "correct": false
+                },
+                {
+                  "arabic": "أَنَا مُتْعَبٌ",
+                  "translation": "Je suis fatigué",
+                  "correct": false
+                }
+              ],
+              "id": "m4-l2:1"
+            },
+            {
+              "arabic": "مَاذَا تَأْكُلُ فِي الفَطُورِ؟",
+              "transliteration": "mādhā taʾkulu fī l-faṭūr?",
+              "translation": "Que manges-tu au petit-déjeuner ?",
+              "type": "learn",
+              "grammar": "آكُلُ = je mange : le أَ du « je » fusionne avec le أ du verbe",
+              "responses": [
+                {
+                  "arabic": "آكُلُ الخُبْزَ وَالجُبْنَ",
+                  "translation": "Je mange du pain et du fromage",
+                  "correct": true
+                },
+                {
+                  "arabic": "أَعْمَلُ كَثِيرًا",
+                  "translation": "Je travaille beaucoup",
+                  "correct": false
+                },
+                {
+                  "arabic": "فِي السَّاعَةِ الثَّامِنَةِ",
+                  "translation": "À huit heures",
+                  "correct": false
+                }
+              ],
+              "id": "m4-l2:2"
+            },
+            {
+              "arabic": "مَاذَا تَفْعَلُ فِي المَسَاءِ؟",
+              "transliteration": "mādhā tafʿalu fī l-masāʾ?",
+              "translation": "Que fais-tu le soir ?",
+              "type": "learn",
+              "grammar": "أَوْ = ou",
+              "responses": [
+                {
+                  "arabic": "أُشَاهِدُ فِيلْمًا أَوْ أَقْرَأُ",
+                  "translation": "Je regarde un film ou je lis",
+                  "correct": true
+                },
+                {
+                  "arabic": "أَسْتَيْقِظُ مُبَكِّرًا",
+                  "translation": "Je me lève tôt",
+                  "correct": false
+                },
+                {
+                  "arabic": "مِنْ فَضْلِكَ",
+                  "translation": "S'il te plaît",
+                  "correct": false
+                }
+              ],
+              "id": "m4-l2:3"
+            }
+          ]
+        },
+        {
+          "id": "m4-l3",
+          "title": "هُوَ وَهِيَ وَنَحْنُ - Parler des autres",
+          "objective": "Conjuguer avec il, elle, nous et vous",
+          "requires": [
+            "m4-l2"
+          ],
+          "concepts": [
+            "يَعْمَلُ",
+            "تَدْرُسُ",
+            "نَسْكُنُ"
+          ],
+          "phrases": [
+            {
+              "arabic": "مَاذَا يَعْمَلُ أَخُوكَ؟",
+              "transliteration": "mādhā yaʿmalu akhūka?",
+              "translation": "Que fait ton frère comme travail ?",
+              "type": "learn",
+              "grammar": "يَـ = il : يَعْمَلُ = il travaille",
+              "responses": [
+                {
+                  "arabic": "هُوَ طَبِيبٌ، يَعْمَلُ فِي مُسْتَشْفًى",
+                  "translation": "Il est médecin, il travaille dans un hôpital",
+                  "correct": true
+                },
+                {
+                  "arabic": "هِيَ طَالِبَةٌ",
+                  "translation": "Elle est étudiante",
+                  "correct": false
+                },
+                {
+                  "arabic": "أَنَا طَبِيبٌ",
+                  "translation": "Je suis médecin",
+                  "correct": false
+                }
+              ],
+              "id": "m4-l3:0"
+            },
+            {
+              "arabic": "وَأُخْتُكَ، هَلْ تَدْرُسُ؟",
+              "transliteration": "wa-ukhtuka, hal tadrusu?",
+              "translation": "Et ta sœur, elle fait des études ?",
+              "type": "learn",
+              "grammar": "تَـ sert aussi pour « elle » : تَدْرُسُ = elle étudie (et « tu étudies »)",
+              "responses": [
+                {
+                  "arabic": "نَعَمْ، تَدْرُسُ فِي الجَامِعَةِ",
+                  "translation": "Oui, elle étudie à l'université",
+                  "correct": true
+                },
+                {
+                  "arabic": "نَعَمْ، يَدْرُسُ فِي الجَامِعَةِ",
+                  "translation": "Oui, il étudie à l'université",
+                  "correct": false
+                },
+                {
+                  "arabic": "لَا، أَنَا لَا أَدْرُسُ",
+                  "translation": "Non, je n'étudie pas",
+                  "correct": false
+                }
+              ],
+              "id": "m4-l3:1"
+            },
+            {
+              "arabic": "أَيْنَ تَسْكُنُونَ؟",
+              "transliteration": "ayna taskunūna?",
+              "translation": "Où habitez-vous ?",
+              "type": "learn",
+              "grammar": "تَـ…ونَ = vous (pluriel) ; نَـ = nous : نَسْكُنُ = nous habitons",
+              "responses": [
+                {
+                  "arabic": "نَسْكُنُ قُرْبَ البَحْرِ",
+                  "translation": "Nous habitons près de la mer",
+                  "correct": true
+                },
+                {
+                  "arabic": "يَسْكُنُ فِي القَرْيَةِ",
+                  "translation": "Il habite au village",
+                  "correct": false
+                },
+                {
+                  "arabic": "نَذْهَبُ غَدًا",
+                  "translation": "Nous partons demain",
+                  "correct": false
+                }
+              ],
+              "id": "m4-l3:2"
+            },
+            {
+              "arabic": "هَلْ يَتَكَلَّمُ أَصْدِقَاؤُكَ العَرَبِيَّةَ؟",
+              "transliteration": "hal yatakallamu aṣdiqāʾuka l-ʿarabiyya?",
+              "translation": "Tes amis parlent-ils arabe ?",
+              "type": "learn",
+              "grammar": "Quand le verbe vient avant un sujet pluriel, il reste au singulier : يَتَكَلَّمُ أَصْدِقَاؤُكَ",
+              "responses": [
+                {
+                  "arabic": "نَعَمْ، يَتَكَلَّمُونَ العَرَبِيَّةَ جَيِّدًا",
+                  "translation": "Oui, ils parlent bien arabe",
+                  "correct": true
+                },
+                {
+                  "arabic": "نَعَمْ، أَتَكَلَّمُ الفَرَنْسِيَّةَ",
+                  "translation": "Oui, je parle français",
+                  "correct": false
+                },
+                {
+                  "arabic": "لَا أَعْرِفُ أَيْنَ هُوَ",
+                  "translation": "Je ne sais pas où il est",
+                  "correct": false
+                }
+              ],
+              "id": "m4-l3:3"
+            }
+          ]
+        },
+        {
+          "id": "m4-review",
+          "title": "🔄 Révision Module 4",
+          "objective": "Réviser les verbes du quotidien",
+          "requires": [
+            "m4-l3"
+          ],
+          "isReview": true
+        }
+      ]
+    },
+    {
+      "id": "m5",
+      "title": "Hier et demain",
+      "emoji": "🕰️",
+      "requiredMastery": 80,
+      "locked": true,
+      "requires": [
+        "m4"
+      ],
+      "description": "Le passé, le futur et se situer dans le temps",
+      "lessons": [
+        {
+          "id": "m5-l1",
+          "title": "المَاضِي - Hier",
+          "objective": "Raconter ce que tu as fait",
+          "concepts": [
+            "ذَهَبْتُ",
+            "أَكَلْنَا",
+            "أَمْسِ"
+          ],
+          "phrases": [
+            {
+              "arabic": "مَاذَا فَعَلْتَ أَمْسِ؟",
+              "transliteration": "mādhā faʿalta ams?",
+              "translation": "Qu'as-tu fait hier ?",
+              "type": "learn",
+              "grammar": "Au passé, la terminaison indique la personne : ـتُ = je, ـتَ = tu (masc.)",
+              "responses": [
+                {
+                  "arabic": "ذَهَبْتُ إِلَى السِّينَمَا",
+                  "translation": "Je suis allé au cinéma",
+                  "correct": true
+                },
+                {
+                  "arabic": "أَذْهَبُ إِلَى السِّينَمَا",
+                  "translation": "Je vais au cinéma",
+                  "correct": false
+                },
+                {
+                  "arabic": "سَأَذْهَبُ غَدًا",
+                  "translation": "J'irai demain",
+                  "correct": false
+                }
+              ],
+              "id": "m5-l1:0"
+            },
+            {
+              "arabic": "مَعَ مَنْ ذَهَبْتَ؟",
+              "transliteration": "maʿa man dhahabta?",
+              "translation": "Avec qui y es-tu allé ?",
+              "type": "learn",
+              "grammar": "مَعَ = avec ; مَنْ = qui",
+              "responses": [
+                {
+                  "arabic": "ذَهَبْتُ مَعَ صَدِيقِي يُوسُف",
+                  "translation": "J'y suis allé avec mon ami Youssef",
+                  "correct": true
+                },
+                {
+                  "arabic": "ذَهَبْتُ بِالسَّيَّارَةِ",
+                  "translation": "J'y suis allé en voiture",
+                  "correct": false
+                },
+                {
+                  "arabic": "فِي السَّاعَةِ التَّاسِعَةِ",
+                  "translation": "À neuf heures",
+                  "correct": false
+                }
+              ],
+              "id": "m5-l1:1"
+            },
+            {
+              "arabic": "هَلْ أَعْجَبَكَ الفِيلْمُ؟",
+              "transliteration": "hal aʿjabaka l-film?",
+              "translation": "Le film t'a plu ?",
+              "type": "learn",
+              "grammar": "أَعْجَبَنِي = ça m'a plu (littéralement « il m'a plu »)",
+              "responses": [
+                {
+                  "arabic": "نَعَمْ، أَعْجَبَنِي كَثِيرًا",
+                  "translation": "Oui, il m'a beaucoup plu",
+                  "correct": true
+                },
+                {
+                  "arabic": "نَعَمْ، أَنَا أَيْضًا",
+                  "translation": "Oui, moi aussi",
+                  "correct": false
+                },
+                {
+                  "arabic": "إِنْ شَاءَ اللهُ",
+                  "translation": "Si Dieu le veut",
+                  "correct": false
+                }
+              ],
+              "id": "m5-l1:2"
+            },
+            {
+              "arabic": "مَاذَا أَكَلْتُمْ بَعْدَ الفِيلْمِ؟",
+              "transliteration": "mādhā akaltum baʿda l-film?",
+              "translation": "Qu'avez-vous mangé après le film ?",
+              "type": "learn",
+              "grammar": "ـتُمْ = vous ; ـنَا = nous : أَكَلْنَا = nous avons mangé",
+              "responses": [
+                {
+                  "arabic": "أَكَلْنَا بِيتْزَا فِي مَطْعَمٍ صَغِيرٍ",
+                  "translation": "Nous avons mangé une pizza dans un petit restaurant",
+                  "correct": true
+                },
+                {
+                  "arabic": "نَأْكُلُ فِي البَيْتِ",
+                  "translation": "Nous mangeons à la maison",
+                  "correct": false
+                },
+                {
+                  "arabic": "لَا أُحِبُّ البِيتْزَا",
+                  "translation": "Je n'aime pas la pizza",
+                  "correct": false
+                }
+              ],
+              "id": "m5-l1:3"
+            }
+          ]
+        },
+        {
+          "id": "m5-l2",
+          "title": "المُسْتَقْبَل - Demain",
+          "objective": "Parler de tes projets",
+          "requires": [
+            "m5-l1"
+          ],
+          "concepts": [
+            "سَـ",
+            "سَوْفَ",
+            "غَدًا"
+          ],
+          "phrases": [
+            {
+              "arabic": "مَاذَا سَتَفْعَلُ غَدًا؟",
+              "transliteration": "mādhā sa-tafʿalu ghadan?",
+              "translation": "Que feras-tu demain ?",
+              "type": "learn",
+              "grammar": "سَـ + verbe au présent = futur : سَأَفْعَلُ = je ferai",
+              "responses": [
+                {
+                  "arabic": "سَأَزُورُ جَدَّتِي",
+                  "translation": "Je rendrai visite à ma grand-mère",
+                  "correct": true
+                },
+                {
+                  "arabic": "زُرْتُ جَدَّتِي",
+                  "translation": "J'ai rendu visite à ma grand-mère",
+                  "correct": false
+                },
+                {
+                  "arabic": "أَنَا مِنَ المَغْرِبِ",
+                  "translation": "Je suis du Maroc",
+                  "correct": false
+                }
+              ],
+              "id": "m5-l2:0"
+            },
+            {
+              "arabic": "مَتَى سَتُسَافِرُ؟",
+              "transliteration": "matā sa-tusāfiru?",
+              "translation": "Quand partiras-tu en voyage ?",
+              "type": "learn",
+              "grammar": "سَافَرَ = voyager ; « إِنْ شَاءَ اللهُ » accompagne souvent un projet",
+              "responses": [
+                {
+                  "arabic": "سَأُسَافِرُ فِي الصَّيْفِ، إِنْ شَاءَ اللهُ",
+                  "translation": "Je partirai en été, si Dieu le veut",
+                  "correct": true
+                },
+                {
+                  "arabic": "سَافَرْتُ إِلَى مِصْرَ",
+                  "translation": "Je suis allé en Égypte",
+                  "correct": false
+                },
+                {
+                  "arabic": "بِالطَّائِرَةِ",
+                  "translation": "En avion",
+                  "correct": false
+                }
+              ],
+              "id": "m5-l2:1"
+            },
+            {
+              "arabic": "إِلَى أَيْنَ سَتَذْهَبُ؟",
+              "transliteration": "ilā ayna sa-tadhhabu?",
+              "translation": "Où iras-tu ?",
+              "type": "learn",
+              "grammar": "إِلَى أَيْنَ = vers où ; لِـ = pour (le but)",
+              "responses": [
+                {
+                  "arabic": "سَأَذْهَبُ إِلَى الأُرْدُنِّ لِزِيَارَةِ عَمِّي",
+                  "translation": "J'irai en Jordanie rendre visite à mon oncle",
+                  "correct": true
+                },
+                {
+                  "arabic": "سَأَذْهَبُ بَعْدَ أُسْبُوعٍ",
+                  "translation": "J'irai dans une semaine",
+                  "correct": false
+                },
+                {
+                  "arabic": "ذَهَبْتُ أَمْسِ",
+                  "translation": "J'y suis allé hier",
+                  "correct": false
+                }
+              ],
+              "id": "m5-l2:2"
+            },
+            {
+              "arabic": "هَلْ سَتَأْتِي إِلَى الحَفْلَةِ يَوْمَ السَّبْتِ؟",
+              "transliteration": "hal sa-taʾtī ilā l-ḥafla yawma s-sabt?",
+              "translation": "Viendras-tu à la fête samedi ?",
+              "type": "learn",
+              "grammar": "سَوْفَ s'emploie comme سَـ, souvent pour un futur plus affirmé",
+              "responses": [
+                {
+                  "arabic": "طَبْعًا! سَوْفَ آتِي مَعَ أُخْتِي",
+                  "translation": "Bien sûr ! Je viendrai avec ma sœur",
+                  "correct": true
+                },
+                {
+                  "arabic": "أَتَيْتُ يَوْمَ السَّبْتِ",
+                  "translation": "Je suis venu samedi",
+                  "correct": false
+                },
+                {
+                  "arabic": "الحَفْلَةُ جَمِيلَةٌ",
+                  "translation": "La fête est belle",
+                  "correct": false
+                }
+              ],
+              "id": "m5-l2:3"
+            }
+          ]
+        },
+        {
+          "id": "m5-l3",
+          "title": "الوَقْت - Se situer dans le temps",
+          "objective": "Dire quand, combien de temps, avant et après",
+          "requires": [
+            "m5-l2"
+          ],
+          "concepts": [
+            "قَبْلَ",
+            "بَعْدَ",
+            "كُنْتُ"
+          ],
+          "phrases": [
+            {
+              "arabic": "مَتَى وَصَلْتَ إِلَى عَمَّانَ؟",
+              "transliteration": "matā waṣalta ilā ʿammān?",
+              "translation": "Quand es-tu arrivé à Amman ?",
+              "type": "learn",
+              "grammar": "قَبْلَ = avant / il y a ; يَوْمَيْنِ = deux jours (le duel)",
+              "responses": [
+                {
+                  "arabic": "وَصَلْتُ قَبْلَ يَوْمَيْنِ",
+                  "translation": "Je suis arrivé il y a deux jours",
+                  "correct": true
+                },
+                {
+                  "arabic": "سَأَصِلُ غَدًا",
+                  "translation": "J'arriverai demain",
+                  "correct": false
+                },
+                {
+                  "arabic": "أَسْكُنُ هُنَا",
+                  "translation": "J'habite ici",
+                  "correct": false
+                }
+              ],
+              "id": "m5-l3:0"
+            },
+            {
+              "arabic": "كَمْ يَوْمًا سَتَبْقَى؟",
+              "transliteration": "kam yawman sa-tabqā?",
+              "translation": "Combien de jours vas-tu rester ?",
+              "type": "learn",
+              "grammar": "كَمْ + nom au singulier = combien de : كَمْ يَوْمًا",
+              "responses": [
+                {
+                  "arabic": "سَأَبْقَى أُسْبُوعًا وَاحِدًا",
+                  "translation": "Je resterai une semaine",
+                  "correct": true
+                },
+                {
+                  "arabic": "بَقِيتُ فِي البَيْتِ",
+                  "translation": "Je suis resté à la maison",
+                  "correct": false
+                },
+                {
+                  "arabic": "عِنْدِي أَخَوَانِ",
+                  "translation": "J'ai deux frères",
+                  "correct": false
+                }
+              ],
+              "id": "m5-l3:1"
+            },
+            {
+              "arabic": "مَاذَا سَتَفْعَلُ بَعْدَ العَشَاءِ؟",
+              "transliteration": "mādhā sa-tafʿalu baʿda l-ʿashāʾ?",
+              "translation": "Que feras-tu après le dîner ?",
+              "type": "learn",
+              "grammar": "بَعْدَ = après ; سَنَـ = nous (au futur)",
+              "responses": [
+                {
+                  "arabic": "سَنَتَمَشَّى فِي المَدِينَةِ القَدِيمَةِ",
+                  "translation": "Nous nous promènerons dans la vieille ville",
+                  "correct": true
+                },
+                {
+                  "arabic": "تَعَشَّيْتُ قَبْلَ سَاعَةٍ",
+                  "translation": "J'ai dîné il y a une heure",
+                  "correct": false
+                },
+                {
+                  "arabic": "العَشَاءُ لَذِيذٌ",
+                  "translation": "Le dîner est délicieux",
+                  "correct": false
+                }
+              ],
+              "id": "m5-l3:2"
+            },
+            {
+              "arabic": "هَلْ كُنْتَ هُنَا السَّنَةَ المَاضِيَةَ؟",
+              "transliteration": "hal kunta hunā s-sanata l-māḍiya?",
+              "translation": "Étais-tu ici l'année dernière ?",
+              "type": "learn",
+              "grammar": "كَانَ = être au passé : كُنْتُ = j'étais, كُنْتَ = tu étais",
+              "responses": [
+                {
+                  "arabic": "لَا، هَذِهِ أَوَّلُ مَرَّةٍ",
+                  "translation": "Non, c'est la première fois",
+                  "correct": true
+                },
+                {
+                  "arabic": "نَعَمْ، سَأَكُونُ هُنَا",
+                  "translation": "Oui, je serai ici",
+                  "correct": false
+                },
+                {
+                  "arabic": "السَّنَةُ القَادِمَةُ",
+                  "translation": "L'année prochaine",
+                  "correct": false
+                }
+              ],
+              "id": "m5-l3:3"
+            }
+          ]
+        },
+        {
+          "id": "m5-review",
+          "title": "🔄 Révision Module 5",
+          "objective": "Réviser le passé et le futur",
+          "requires": [
+            "m5-l3"
+          ],
+          "isReview": true
+        }
+      ]
+    },
+    {
+      "id": "m6",
+      "title": "Vraies conversations",
+      "emoji": "🗣️",
+      "requiredMastery": 80,
+      "locked": true,
+      "requires": [
+        "m5"
+      ],
+      "description": "Inviter, donner son avis, raconter une histoire",
+      "lessons": [
+        {
+          "id": "m6-l1",
+          "title": "دَعْوَة - Inviter un ami",
+          "objective": "Proposer une sortie et fixer un rendez-vous",
+          "concepts": [
+            "هَلْ تُرِيدُ أَنْ",
+            "يُنَاسِبُنِي",
+            "نَلْتَقِي"
+          ],
+          "phrases": [
+            {
+              "arabic": "هَلْ تُرِيدُ أَنْ نَشْرَبَ قَهْوَةً مَعًا؟",
+              "transliteration": "hal turīdu an nashraba qahwatan maʿan?",
+              "translation": "Tu veux qu'on boive un café ensemble ?",
+              "type": "learn",
+              "grammar": "أُرِيدُ أَنْ + verbe = je veux que… / vouloir + infinitif (le verbe finit alors par « a » : نَشْرَبَ)",
+              "responses": [
+                {
+                  "arabic": "بِكُلِّ سُرُورٍ! مَتَى؟",
+                  "translation": "Avec plaisir ! Quand ?",
+                  "correct": true
+                },
+                {
+                  "arabic": "شَرِبْتُ القَهْوَةَ",
+                  "translation": "J'ai bu le café",
+                  "correct": false
+                },
+                {
+                  "arabic": "لَا أَتَكَلَّمُ العَرَبِيَّةَ",
+                  "translation": "Je ne parle pas arabe",
+                  "correct": false
+                }
+              ],
+              "id": "m6-l1:0"
+            },
+            {
+              "arabic": "هَلْ يُنَاسِبُكَ يَوْمُ الخَمِيسِ؟",
+              "transliteration": "hal yunāsibuka yawmu l-khamīs?",
+              "translation": "Jeudi, ça te convient ?",
+              "type": "learn",
+              "grammar": "يُنَاسِبُنِي = ça me convient ; مَا رَأْيُكَ فِي… = que penses-tu de…",
+              "responses": [
+                {
+                  "arabic": "الخَمِيسُ لَا يُنَاسِبُنِي، مَا رَأْيُكَ فِي الجُمُعَةِ؟",
+                  "translation": "Jeudi ne me convient pas, que dis-tu de vendredi ?",
+                  "correct": true
+                },
+                {
+                  "arabic": "اليَوْمُ هُوَ الخَمِيسُ",
+                  "translation": "Aujourd'hui, c'est jeudi",
+                  "correct": false
+                },
+                {
+                  "arabic": "أَنَا مِنْ تُونِسَ",
+                  "translation": "Je suis de Tunisie",
+                  "correct": false
+                }
+              ],
+              "id": "m6-l1:1"
+            },
+            {
+              "arabic": "حَسَنًا، الجُمُعَةَ فِي السَّاعَةِ الخَامِسَةِ؟",
+              "transliteration": "ḥasanan, al-jumuʿata fī s-sāʿati l-khāmisa?",
+              "translation": "D'accord, vendredi à cinq heures ?",
+              "type": "learn",
+              "grammar": "نَلْتَقِي = nous nous retrouvons",
+              "responses": [
+                {
+                  "arabic": "مُمْتَازٌ! أَيْنَ نَلْتَقِي؟",
+                  "translation": "Parfait ! Où se retrouve-t-on ?",
+                  "correct": true
+                },
+                {
+                  "arabic": "كَانَ الجَوُّ جَمِيلًا",
+                  "translation": "Il faisait beau",
+                  "correct": false
+                },
+                {
+                  "arabic": "السَّاعَةُ الآنَ الخَامِسَةُ",
+                  "translation": "Il est cinq heures maintenant",
+                  "correct": false
+                }
+              ],
+              "id": "m6-l1:2"
+            },
+            {
+              "arabic": "لِنَلْتَقِ أَمَامَ المَكْتَبَةِ",
+              "transliteration": "li-naltaqi amāma l-maktaba",
+              "translation": "Retrouvons-nous devant la librairie",
+              "type": "learn",
+              "grammar": "لِـ + verbe raccourci = « que… » : لِنَلْتَقِ = retrouvons-nous ; أَمَامَ = devant",
+              "responses": [
+                {
+                  "arabic": "اِتَّفَقْنَا! نَلْتَقِي يَوْمَ الجُمُعَةِ",
+                  "translation": "C'est entendu ! On se voit vendredi",
+                  "correct": true
+                },
+                {
+                  "arabic": "المَكْتَبَةُ كَبِيرَةٌ",
+                  "translation": "La librairie est grande",
+                  "correct": false
+                },
+                {
+                  "arabic": "قَرَأْتُ كِتَابًا",
+                  "translation": "J'ai lu un livre",
+                  "correct": false
+                }
+              ],
+              "id": "m6-l1:3"
+            }
+          ]
+        },
+        {
+          "id": "m6-l2",
+          "title": "رَأْيِي - Donner son avis",
+          "objective": "Dire ce que tu penses et nuancer",
+          "requires": [
+            "m6-l1"
+          ],
+          "concepts": [
+            "أَظُنُّ أَنَّ",
+            "لَكِنَّ",
+            "أُفَضِّلُ"
+          ],
+          "phrases": [
+            {
+              "arabic": "مَا رَأْيُكَ فِي هَذَا المَطْعَمِ؟",
+              "transliteration": "mā raʾyuka fī hādhā l-maṭʿam?",
+              "translation": "Que penses-tu de ce restaurant ?",
+              "type": "learn",
+              "grammar": "لَكِنَّ = mais (le nom qui suit prend un « a » : الأَسْعَارَ)",
+              "responses": [
+                {
+                  "arabic": "الأَكْلُ لَذِيذٌ، لَكِنَّ الأَسْعَارَ غَالِيَةٌ",
+                  "translation": "La nourriture est délicieuse, mais les prix sont élevés",
+                  "correct": true
+                },
+                {
+                  "arabic": "أَكَلْتُ فِي البَيْتِ",
+                  "translation": "J'ai mangé à la maison",
+                  "correct": false
+                },
+                {
+                  "arabic": "المَطْعَمُ فِي الشَّارِعِ",
+                  "translation": "Le restaurant est dans la rue",
+                  "correct": false
+                }
+              ],
+              "id": "m6-l2:0"
+            },
+            {
+              "arabic": "أَظُنُّ أَنَّ العَرَبِيَّةَ صَعْبَةٌ",
+              "transliteration": "aẓunnu anna l-ʿarabiyya ṣaʿba",
+              "translation": "Je pense que l'arabe est difficile",
+              "type": "learn",
+              "grammar": "أَظُنُّ أَنَّ… = je pense que… ; لَكِنَّهَا = mais elle",
+              "responses": [
+                {
+                  "arabic": "صَحِيحٌ، لَكِنَّهَا جَمِيلَةٌ جِدًّا",
+                  "translation": "C'est vrai, mais elle est très belle",
+                  "correct": true
+                },
+                {
+                  "arabic": "نَعَمْ، أَنَا عَرَبِيٌّ",
+                  "translation": "Oui, je suis arabe",
+                  "correct": false
+                },
+                {
+                  "arabic": "سَأَدْرُسُ غَدًا",
+                  "translation": "J'étudierai demain",
+                  "correct": false
+                }
+              ],
+              "id": "m6-l2:1"
+            },
+            {
+              "arabic": "هَلْ تُفَضِّلُ البَحْرَ أَمِ الجَبَلَ؟",
+              "transliteration": "hal tufaḍḍilu l-baḥra ami l-jabal?",
+              "translation": "Tu préfères la mer ou la montagne ?",
+              "type": "learn",
+              "grammar": "أَمْ = ou (dans une question à choix) ; لِأَنِّي = parce que je",
+              "responses": [
+                {
+                  "arabic": "أُفَضِّلُ البَحْرَ لِأَنِّي أُحِبُّ السِّبَاحَةَ",
+                  "translation": "Je préfère la mer parce que j'aime nager",
+                  "correct": true
+                },
+                {
+                  "arabic": "نَعَمْ، أُفَضِّلُ",
+                  "translation": "Oui, je préfère",
+                  "correct": false
+                },
+                {
+                  "arabic": "الجَبَلُ عَالٍ",
+                  "translation": "La montagne est haute",
+                  "correct": false
+                }
+              ],
+              "id": "m6-l2:2"
+            },
+            {
+              "arabic": "لَا أَتَّفِقُ مَعَكَ، الشِّتَاءُ أَجْمَلُ مِنَ الصَّيْفِ",
+              "transliteration": "lā attafiqu maʿaka, ash-shitāʾu ajmalu mina ṣ-ṣayf",
+              "translation": "Je ne suis pas d'accord avec toi, l'hiver est plus beau que l'été",
+              "type": "learn",
+              "grammar": "أَجْمَلُ مِنْ = plus beau que (comparatif sur le modèle أَفْعَلُ)",
+              "responses": [
+                {
+                  "arabic": "رُبَّمَا، كُلُّ وَاحِدٍ لَهُ رَأْيُهُ",
+                  "translation": "Peut-être, chacun son avis",
+                  "correct": true
+                },
+                {
+                  "arabic": "أَنَا أَيْضًا مِنْ فَرَنْسَا",
+                  "translation": "Moi aussi, je suis de France",
+                  "correct": false
+                },
+                {
+                  "arabic": "سَافَرْتُ فِي الصَّيْفِ",
+                  "translation": "J'ai voyagé en été",
+                  "correct": false
+                }
+              ],
+              "id": "m6-l2:3"
+            }
+          ]
+        },
+        {
+          "id": "m6-l3",
+          "title": "حِكَايَة - Raconter une histoire",
+          "objective": "Enchaîner un petit récit au passé",
+          "requires": [
+            "m6-l2"
+          ],
+          "concepts": [
+            "عِنْدَمَا",
+            "ثُمَّ",
+            "فَجْأَةً"
+          ],
+          "phrases": [
+            {
+              "arabic": "مَاذَا حَدَثَ لَكَ؟ تَبْدُو مُتْعَبًا",
+              "transliteration": "mādhā ḥadatha laka? tabdū mutʿaban",
+              "translation": "Qu'est-ce qui t'est arrivé ? Tu as l'air fatigué",
+              "type": "learn",
+              "grammar": "حَدَثَ = il s'est passé ; ضَاعَ هَاتِفِي = mon téléphone s'est perdu",
+              "responses": [
+                {
+                  "arabic": "ضَاعَ هَاتِفِي فِي القِطَارِ",
+                  "translation": "J'ai perdu mon téléphone dans le train",
+                  "correct": true
+                },
+                {
+                  "arabic": "سَأَشْتَرِي هَاتِفًا",
+                  "translation": "J'achèterai un téléphone",
+                  "correct": false
+                },
+                {
+                  "arabic": "القِطَارُ سَرِيعٌ",
+                  "translation": "Le train est rapide",
+                  "correct": false
+                }
+              ],
+              "id": "m6-l3:0"
+            },
+            {
+              "arabic": "مِسْكِينٌ! كَيْفَ حَدَثَ ذَلِكَ؟",
+              "transliteration": "miskīn! kayfa ḥadatha dhālika?",
+              "translation": "Mon pauvre ! Comment c'est arrivé ?",
+              "type": "learn",
+              "grammar": "عِنْدَمَا = quand (dans un récit) ; نَسِيتُهُ = je l'ai oublié",
+              "responses": [
+                {
+                  "arabic": "عِنْدَمَا نَزَلْتُ مِنَ القِطَارِ، نَسِيتُهُ عَلَى المَقْعَدِ",
+                  "translation": "Quand je suis descendu du train, je l'ai oublié sur le siège",
+                  "correct": true
+                },
+                {
+                  "arabic": "سَأَنْزِلُ فِي المَحَطَّةِ القَادِمَةِ",
+                  "translation": "Je descendrai à la prochaine gare",
+                  "correct": false
+                },
+                {
+                  "arabic": "أُحِبُّ القِطَارَ",
+                  "translation": "J'aime le train",
+                  "correct": false
+                }
+              ],
+              "id": "m6-l3:1"
+            },
+            {
+              "arabic": "وَمَاذَا فَعَلْتَ بَعْدَ ذَلِكَ؟",
+              "transliteration": "wa-mādhā faʿalta baʿda dhālik?",
+              "translation": "Et qu'as-tu fait ensuite ?",
+              "type": "learn",
+              "grammar": "ثُمَّ = puis, ensuite ; اِتَّصَلَ بِـ = appeler (au téléphone)",
+              "responses": [
+                {
+                  "arabic": "ذَهَبْتُ إِلَى المَحَطَّةِ ثُمَّ اتَّصَلْتُ بِرَقْمِي",
+                  "translation": "Je suis allé à la gare, puis j'ai appelé mon numéro",
+                  "correct": true
+                },
+                {
+                  "arabic": "سَأَتَّصِلُ بِكَ غَدًا",
+                  "translation": "Je t'appellerai demain",
+                  "correct": false
+                },
+                {
+                  "arabic": "المَحَطَّةُ بَعِيدَةٌ",
+                  "translation": "La gare est loin",
+                  "correct": false
+                }
+              ],
+              "id": "m6-l3:2"
+            },
+            {
+              "arabic": "وَهَلْ وَجَدْتَهُ؟",
+              "transliteration": "wa-hal wajadtahu?",
+              "translation": "Et tu l'as retrouvé ?",
+              "type": "learn",
+              "grammar": "ـهُ = le (pronom complément) : وَجَدْتُهُ = je l'ai trouvé ; فَجْأَةً = soudain",
+              "responses": [
+                {
+                  "arabic": "نَعَمْ! فَجْأَةً أَجَابَ رَجُلٌ لَطِيفٌ وَأَعَادَهُ إِلَيَّ",
+                  "translation": "Oui ! Soudain, un homme gentil a répondu et me l'a rendu",
+                  "correct": true
+                },
+                {
+                  "arabic": "لَا، لَمْ أَذْهَبْ",
+                  "translation": "Non, je n'y suis pas allé",
+                  "correct": false
+                },
+                {
+                  "arabic": "نَعَمْ، أَجِدُهُ كُلَّ يَوْمٍ",
+                  "translation": "Oui, je le trouve chaque jour",
+                  "correct": false
+                }
+              ],
+              "id": "m6-l3:3"
+            }
+          ]
+        },
+        {
+          "id": "m6-review",
+          "title": "🔄 Révision Module 6",
+          "objective": "Réviser les vraies conversations",
+          "requires": [
+            "m6-l3"
+          ],
+          "isReview": true
+        }
+      ]
     }
   ],
   "source": "Apprentissage-langue-arabe/curriculum.js"
