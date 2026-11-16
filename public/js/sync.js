@@ -13,6 +13,9 @@ const DEBOUNCE_MS = 2500;
 const PERIOD_MS = 5 * 60 * 1000;
 
 let _enabled = false;
+let _resolveAccount;
+/** Résolue dès que l'on sait si un compte est connecté (réponse de /api/me, ou échec). */
+export const accountReady = new Promise(r => { _resolveAccount = r; });
 let _timer = null;
 let _running = null;
 
@@ -43,6 +46,7 @@ export async function initSync() {
   } catch { /* hors-ligne ou serveur statique */ }
 
   store.set('account', me);
+  _resolveAccount(me);
   _enabled = Boolean(me?.sync);
   emit(_enabled ? 'idle' : 'disabled');
   if (!_enabled) return me;

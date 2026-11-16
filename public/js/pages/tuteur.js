@@ -8,6 +8,7 @@ import { haptic, toast } from '../ui.js';
 import { renderBottomNav } from '../components/bottom-nav.js';
 import { recordActivity } from '../activity.js';
 import { getParcoursState } from '../parcours.js';
+import { accountReady } from '../sync.js';
 
 const $app = () => document.getElementById('app');
 const SAVE_KEY = 'ha-tutor';
@@ -28,7 +29,8 @@ const load = () => { try { return JSON.parse(localStorage.getItem(SAVE_KEY)) || 
 const save = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify({ scenario: T.scenario, level: T.level, messages: T.messages })); } catch { /* quota */ } };
 
 export async function renderTutor() {
-  const account = store.get('account');
+  // Attend la vérification du compte (lancée au démarrage) si elle n'est pas encore terminée
+  const account = store.get('account') ?? await Promise.race([accountReady, new Promise(r => setTimeout(() => r(null), 6000))]);
   const saved = load();
   const level = saved?.level || await guessLevel();
   T = { scenario: saved?.scenario || 'libre', level, messages: saved?.messages || [], busy: false, suggestions: [] };
