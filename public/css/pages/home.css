@@ -188,3 +188,45 @@
 }
 .wotd__link .ico { width: 16px; height: 16px; transition: transform var(--dur-2) var(--ease-out); }
 .wotd__link:hover .ico { transform: translateX(3px); }
+
+/* ── Tuteur IA ── */
+.ai-card {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  width: 100%;
+  padding: var(--sp-4) var(--sp-5);
+  border-radius: var(--r-lg);
+  background: linear-gradient(135deg, #6B4FD8 0%, #4A32A8 100%);
+  color: #fff;
+  text-align: start;
+  box-shadow: 0 16px 32px -16px rgba(90, 60, 200, 0.7);
+  isolation: isolate;
+}
+.ai-card::after {
+  content: '';
+  position: absolute; z-index: -1;
+  width: 180px; height: 180px; right: -60px; top: -80px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.25), transparent 65%);
+}
+.ai-card__avatar {
+  position: relative;
+  display: grid; place-items: center;
+  width: 48px; height: 48px; flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--grad-gold);
+  color: #3A2500;
+  font-family: var(--font-arabic);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+.ai-card__spark { position: absolute; right: -4px; top: -4px; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: #fff; color: #6B4FD8; }
+.ai-card__spark .ico { width: 11px; height: 11px; }
+.ai-card__body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ai-card__title { font-weight: 800; font-size: var(--fs-md); letter-spacing: -0.01em; }
+.ai-card__meta { font-size: var(--fs-xs); opacity: 0.8; font-weight: 600; }
+.ai-card__go { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: rgba(255, 255, 255, 0.16); }
+.ai-card__go .ico { width: 18px; height: 18px; }

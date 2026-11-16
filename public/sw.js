@@ -4,7 +4,7 @@
 //   - code (HTML/CSS/JS) et données JSON : network-first → les mises à jour arrivent immédiatement, cache en secours hors-ligne
 //   - images, polices, audio : stale-while-revalidate
 
-const CACHE_VERSION = 'v2.0.0';
+const CACHE_VERSION = 'v2.1.0';
 const CACHE_NAME = `helloarabic-${CACHE_VERSION}`;
 
 const PRECACHE_ASSETS = [
@@ -32,6 +32,9 @@ const PRECACHE_ASSETS = [
   'js/ui.js',
   'js/activity.js',
   'js/parcours.js',
+  'js/sync.js',
+  'js/pages/tuteur.js',
+  'css/pages/tuteur.css',
   'js/pages/words-common.js',
   'data/courses.json',
   'data/themes.json',
@@ -61,6 +64,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
 
   const isSameOrigin = url.origin === self.location.origin;
+  if (isSameOrigin && url.pathname.includes('/api/')) return; // jamais de cache pour l'API
   const isFont = url.hostname.endsWith('fonts.googleapis.com') || url.hostname.endsWith('fonts.gstatic.com');
   if (!isSameOrigin && !isFont) return;
 

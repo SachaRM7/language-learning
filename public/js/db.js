@@ -3,6 +3,7 @@
 class Database {
   constructor() {
     this._db = null;
+    this._listeners = [];
   }
 
   init() {
@@ -56,12 +57,43 @@ class Database {
     });
   }
 
-  _put(storeName, value) {
+  /** Écriture locale : horodate l'enregistrement et le signale à la synchro. */
+  async _put(storeName, value) {
+    const stamped = { ...value, _updatedAt: Date.now() };
+    await this._putRaw(storeName, stamped);
+    this._notify(storeName, stamped[KEY_PATHS[storeName]]);
+  }
+
+  /** Écriture sans signalement (utilisée pour appliquer les changements distants). */
+  _putRaw(storeName, value) {
     return new Promise((resolve, reject) => {
       const req = this._store(storeName, 'readwrite').put(value);
       req.onsuccess = () => resolve();
       req.onerror = () => reject(req.error);
     });
+  }
+
+  _deleteRaw(storeName, key) {
+    return new Promise((resolve, reject) => {
+      const req = this._store(storeName, 'readwrite').delete(key);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  _getAllKeys(storeName) {
+    return new Promise((resolve, reject) => {
+      const req = this._store(storeName).getAllKeys();
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  /** Abonnement aux écritures locales : cb(store, key, deleted) */
+  onChange(cb) { this._listeners.push(cb); }
+
+  _notify(storeName, key, deleted = false) {
+    this._listeners.forEach(cb => { try { cb(storeName, key, deleted); } catch { /* ignore */ } });
   }
 
   _getAll(storeName) {
@@ -174,21 +206,26 @@ class Database {
   /** Efface toute la progression (SRS, leçons, stats, favoris, decks de leçon). Les préférences sont conservées. */
   async resetProgress() {
     const stores = ['srs', 'lessonProgress', 'stats', 'favorites', 'lessonDecks'];
+    const keysByStore = Object.fromEntries(await Promise.all(stores.map(async n => [n, await this._getAllKeys(n)])));
     await new Promise((resolve, reject) => {
       const tx = this._db.transaction(stores, 'readwrite');
       stores.forEach(n => tx.objectStore(n).clear());
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
     });
+    stores.forEach(n => keysByStore[n].forEach(k => this._notify(n, k, true)));
   }
 
   async deleteLessonDeck(courseId, lessonId) {
-    return new Promise((resolve, reject) => {
-      const req = this._store('lessonDecks', 'readwrite').delete(`${courseId}:${lessonId}`);
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error);
-    });
+    const key = `${courseId}:${lessonId}`;
+    await this._deleteRaw('lessonDecks', key);
+    this._notify('lessonDecks', key, true);
   }
 }
+
+export const KEY_PATHS = {
+  preferences: 'id', srs: 'key', favorites: 'courseId',
+  lessonProgress: 'key', stats: 'courseId', lessonDecks: 'key',
+};
 
 export const db = new Database();

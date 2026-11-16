@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-BASE_DIR = Path(__file__).parent.parent
+BASE_DIR = Path(__file__).parent.parent / "public"
 VOCAB_DIR = BASE_DIR / "data" / "vocabulary"
 CACHE_FILE = BASE_DIR / "data" / "translations_cache.json"
 OUTPUT_DIR = BASE_DIR / "data" / "decks"

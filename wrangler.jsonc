@@ -1,0 +1,36 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "helloarabic",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Frontend statique (vanilla ES modules, sans build) servi directement par Cloudflare.
+  // Seules les routes /api/* réveillent le Worker.
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "helloarabic",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  // Cloudflare Access protège tout le domaine ; le Worker revérifie le JWT pour /api/*.
+  // ACCESS_TEAM_DOMAIN : <équipe>.cloudflareaccess.com — ACCESS_AUD : « Application Audience (AUD) Tag ».
+  "vars": {
+    "ACCESS_TEAM_DOMAIN": "",
+    "ACCESS_AUD": "",
+    "TUTOR_MODEL": "claude-opus-5-5"
+  },
+
+  // Secret à définir : npx wrangler secret put ANTHROPIC_API_KEY
+  "observability": { "enabled": true }
+}

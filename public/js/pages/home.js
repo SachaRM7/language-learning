@@ -57,6 +57,7 @@ export async function renderHome() {
         ${heroCard(parcours)}
         ${goalCard(xp, goal, stats)}
         ${dueTotal > 0 ? reviewCard(dueWords.length, duePhrases.length) : ''}
+        ${tutorCard()}
         <section class="section">
           <div class="section__head"><h2 class="section__title">Explorer</h2></div>
           <div class="bento">
@@ -144,6 +145,18 @@ function reviewCard(words, phrases) {
         <span class="row__meta">${parts} · quelques minutes suffisent</span>
       </span>
       <span class="row__chev">${icon('chevron-right')}</span>
+    </button>`;
+}
+
+function tutorCard() {
+  return `
+    <button class="ai-card pressable" data-navigate="/tuteur">
+      <span class="ai-card__avatar">ك<span class="ai-card__spark">${icon('sparkles')}</span></span>
+      <span class="ai-card__body">
+        <span class="ai-card__title">Discute avec Karim</span>
+        <span class="ai-card__meta">Tuteur IA · conversation libre, corrections</span>
+      </span>
+      <span class="ai-card__go">${icon('arrow-right')}</span>
     </button>`;
 }
 

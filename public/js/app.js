@@ -3,8 +3,12 @@
 import './icons.js';
 import { db } from './db.js';
 import { applyTheme, bindHeaderScroll } from './ui.js';
+import { initSync } from './sync.js';
 import { store } from './store.js';
-import { route, startRouter, navigate } from './router.js';
+import { route, startRouter, navigate, getCurrentRoute } from './router.js';
+
+// Pages « de consultation » rafraîchies quand des données arrivent d'un autre appareil
+const BROWSE_ROUTES = ['/home', '/parcours', '/mots', '/conversations', '/revision', '/profil'];
 import { renderHome } from './pages/home.js';
 import { renderWordsHome, renderWordsTheme } from './pages/words-home.js';
 import { renderWordsDeck, renderWordsDeckLesson } from './pages/words-deck.js';
@@ -25,6 +29,7 @@ import { renderRoots } from './pages/roots.js';
 import { renderProfil } from './pages/profil.js';
 import { renderParcoursHome } from './pages/parcours-home.js';
 import { renderParcoursLesson, renderParcoursReview } from './pages/parcours-lesson.js';
+import { renderTutor } from './pages/tuteur.js';
 
 async function init() {
   await db.init();
@@ -69,6 +74,9 @@ async function init() {
   route('/parcours/revision', renderParcoursReview);
   route('/parcours/lecon/:lessonId', renderParcoursLesson);
 
+  // Tuteur IA (Claude, via le Worker)
+  route('/tuteur', renderTutor);
+
   // Phase 2 — Mode Mots
   route('/mots', renderWordsHome);
   route('/mots/:themeId', renderWordsTheme);
@@ -104,6 +112,16 @@ async function init() {
   route('/profil', renderProfil);
 
   startRouter();
+
+  // Synchronisation en arrière-plan (Cloudflare D1). Sans Worker, l'app reste 100 % locale.
+  initSync();
+  window.addEventListener('ha:remote-changes', () => {
+    applyTheme(store.get('preferences')?.theme || 'system');
+    const path = getCurrentRoute().path;
+    if (BROWSE_ROUTES.includes(path)) {
+      if (!document.querySelector('.modal-overlay, .feedback-bar')) window.dispatchEvent(new HashChangeEvent('hashchange'));
+    }
+  });
 }
 
 document.addEventListener('DOMContentLoaded', init);

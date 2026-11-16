@@ -8,7 +8,7 @@ import zlib
 import os
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.join(SCRIPT_DIR, '..')
+ROOT = os.path.join(SCRIPT_DIR, '..', 'public')
 OUT_DIR = os.path.join(ROOT, 'images', 'icons')
 
 os.makedirs(OUT_DIR, exist_ok=True)

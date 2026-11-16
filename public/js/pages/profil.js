@@ -10,6 +10,8 @@ import { getBoxDistribution } from '../srs.js';
 import { icon } from '../icons.js';
 import { applyTheme, toast, haptic, progressBar, animateCount } from '../ui.js';
 import { liveStreak, last7Days, todayXP, DAILY_GOAL_DEFAULT } from '../activity.js';
+import { syncNow, syncStatus } from '../sync.js';
+import { escapeHtml } from '../utils.js';
 
 const $app = () => document.getElementById('app');
 const XP_PER_LEVEL = 100;
@@ -133,6 +135,8 @@ export async function renderProfil() {
         </div>
       </section>
 
+      ${_syncGroup()}
+
       <section class="set-group">
         <h2 class="set-group__title">Mes données</h2>
         <div class="set-card">
@@ -164,6 +168,14 @@ export async function renderProfil() {
 
   animateCount(document.getElementById('pf-xp'), xp, 700);
   _bindEvents(course);
+  document.getElementById('btn-sync')?.addEventListener('click', async e => {
+    const btn = e.currentTarget;
+    btn.classList.add('is-syncing');
+    const { applied } = await syncNow();
+    const st = syncStatus();
+    toast(st.state === 'error' ? 'Synchronisation impossible' : applied ? `${applied} élément(s) récupéré(s)` : 'Tout est synchronisé', { icon: st.state === 'error' ? 'info' : 'check-circle' });
+    renderProfil();
+  });
 }
 
 function _toggleRow(id, label, hint, ic, tint, ink, checked) {
@@ -310,4 +322,39 @@ async function _reset() {
   } catch (err) {
     toast(`Réinitialisation impossible : ${err.message}`, { icon: 'info' });
   }
+}
+
+function _syncGroup() {
+  const account = store.get('account');
+  const st = syncStatus();
+  if (!account) {
+    return `
+      <section class="set-group">
+        <h2 class="set-group__title">Synchronisation</h2>
+        <div class="set-card">
+          <div class="set-row">
+            <span class="set-row__icon" style="--tint:var(--surface-2);--tint-ink:var(--ink-3)">${icon('monitor')}</span>
+            <span class="set-row__text"><span class="set-row__label">Mode local</span><span class="set-row__hint">Ta progression reste sur cet appareil. En ligne (Cloudflare), elle se synchronise entre tes appareils.</span></span>
+          </div>
+        </div>
+      </section>`;
+  }
+  const last = st.last ? new Date(st.last).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }) : 'jamais';
+  const hint = st.state === 'error' ? 'Dernière tentative échouée — nouvel essai automatique'
+    : st.pending ? `${st.pending} modification(s) en attente · dernière synchro : ${last}`
+    : `À jour · dernière synchro : ${last}`;
+  return `
+    <section class="set-group">
+      <h2 class="set-group__title">Compte & synchronisation</h2>
+      <div class="set-card">
+        <div class="set-row">
+          <span class="set-row__icon" style="--tint:var(--primary-soft);--tint-ink:var(--primary)">${icon('user')}</span>
+          <span class="set-row__text"><span class="set-row__label">${escapeHtml(account.email || '')}</span><span class="set-row__hint">Connecté via Cloudflare Access</span></span>
+        </div>
+        <button class="set-row set-row--btn" id="btn-sync">
+          <span class="set-row__icon" style="--tint:var(--info-soft);--tint-ink:var(--info)">${icon('refresh-cw')}</span>
+          <span class="set-row__text"><span class="set-row__label">Synchroniser maintenant</span><span class="set-row__hint">${hint}</span></span>
+        </button>
+      </div>
+    </section>`;
 }
