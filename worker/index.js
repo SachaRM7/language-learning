@@ -6,6 +6,7 @@ import { handleSync } from './sync.js';
 import { handleTutor } from './tutor.js';
 import { handleQuranFr, handleQuranSurah } from './quran.js';
 import { handleLemmasFr, translatePendingLemmas } from './lexicon.js';
+import { processKazimirski, handleKazimirskiRoots } from './kazimirski.js';
 import { json } from './http.js';
 import { serveStatic } from './static.js';
 
@@ -15,6 +16,10 @@ export default {
     ctx.waitUntil(translatePendingLemmas(env)
       .then(r => console.log('lexique', JSON.stringify(r)))
       .catch(err => console.error('lexique : échec, nouvel essai au prochain passage', err?.message)));
+    // Lecture du Kazimirski par lots (ne fait rien tant qu'aucun lot n'est en attente)
+    ctx.waitUntil(processKazimirski(env)
+      .then(r => { if (r.state !== 'idle') console.log('kazimirski', JSON.stringify(r)); })
+      .catch(err => console.error('kazimirski : échec, nouvel essai au prochain passage', err?.message)));
   },
 
   async fetch(request, env) {
@@ -37,6 +42,8 @@ export default {
           return await handleLemmasFr(request, env);
         case 'GET /api/quran/surah':
           return await handleQuranSurah(request, env);
+        case 'GET /api/kazimirski/roots':
+          return await handleKazimirskiRoots(request, env);
         case 'GET /api/quran/fr':
         case 'POST /api/quran/fr':
           return await handleQuranFr(request, env);
