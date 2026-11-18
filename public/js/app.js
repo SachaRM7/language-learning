@@ -153,7 +153,16 @@ async function init() {
   });
 }
 
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', () => init().catch(err => {
+  // Jamais d'écran vide : on montre l'erreur pour pouvoir la signaler
+  console.error(err);
+  const el = document.createElement('div');
+  el.className = 'boot-msg';
+  el.innerHTML = `<div class="boot-msg__card"><div class="boot-msg__ar" lang="ar">أ</div><h1>Démarrage impossible</h1>
+    <p>${String(err?.message || err).replace(/[<>&]/g, '')}</p>
+    <button class="btn btn--primary" onclick="location.reload()">Réessayer</button></div>`;
+  document.body.appendChild(el);
+}));
 
 // Service Worker
 if ('serviceWorker' in navigator) {

@@ -175,3 +175,10 @@ h1, h2, h3, h4 { line-height: 1.2; letter-spacing: -0.02em; font-weight: 700; }
     scroll-behavior: auto !important;
   }
 }
+
+/* Message de démarrage (mise à jour bloquée, erreur) — jamais d'écran vide */
+.boot-msg { position: fixed; inset: 0; z-index: 9999; display: grid; place-items: center; padding: 24px; background: var(--bg); color: var(--ink); }
+.boot-msg__card { max-width: 380px; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+.boot-msg__ar { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 20px; background: var(--grad-primary); color: #fff; font-family: var(--font-arabic); font-size: 34px; }
+.boot-msg h1 { font-size: 1.25rem; font-weight: 800; }
+.boot-msg p { color: var(--ink-2); line-height: 1.5; font-size: 0.95rem; }

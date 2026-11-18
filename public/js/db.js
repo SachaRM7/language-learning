@@ -42,8 +42,18 @@ class Database {
 
       request.onsuccess = (event) => {
         this._db = event.target.result;
+        // Une nouvelle version de l'app ouverte ailleurs a besoin de mettre la base à jour :
+        // on libère la connexion et on recharge, au lieu de la bloquer (écran vide de l'autre côté).
+        this._db.onversionchange = () => {
+          this._db.close();
+          if (typeof location !== 'undefined') location.reload();
+        };
+        document.getElementById('db-blocked')?.remove();
         resolve();
       };
+
+      // Un autre onglet (ou l'app installée) garde l'ancienne version ouverte : on le dit au lieu d'attendre en silence.
+      request.onblocked = () => showBlocked();
 
       request.onerror = () => reject(request.error);
     });
@@ -246,6 +256,21 @@ class Database {
     await this._deleteRaw('lessonDecks', key);
     this._notify('lessonDecks', key, true);
   }
+}
+
+function showBlocked() {
+  if (typeof document === 'undefined' || document.getElementById('db-blocked')) return;
+  const el = document.createElement('div');
+  el.id = 'db-blocked';
+  el.className = 'boot-msg';
+  el.innerHTML = `
+    <div class="boot-msg__card">
+      <div class="boot-msg__ar" lang="ar">أ</div>
+      <h1>Mise à jour en cours</h1>
+      <p>HelloArabic est encore ouvert avec l’ancienne version dans un autre onglet ou dans l’app installée.
+      Ferme-le : la mise à jour se terminera toute seule ici.</p>
+    </div>`;
+  document.body.appendChild(el);
 }
 
 export const KEY_PATHS = {
