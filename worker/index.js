@@ -19,7 +19,12 @@ export default {
     // Lecture du Kazimirski par lots (ne fait rien tant qu'aucun lot n'est en attente)
     ctx.waitUntil(processKazimirski(env)
       .then(r => { if (r.state !== 'idle') console.log('kazimirski', JSON.stringify(r)); })
-      .catch(err => console.error('kazimirski : échec, nouvel essai au prochain passage', err?.message)));
+      .catch(async err => {
+        console.error('kazimirski : échec, nouvel essai au prochain passage', err?.message);
+        // Garder la dernière erreur visible dans la table (les journaux en direct ne sont pas toujours là)
+        await env.DB?.prepare("UPDATE kz_job SET error = ?1, updated_at = ?2 WHERE status IN ('queued', 'submitted')")
+          .bind(String(err?.message || err).slice(0, 500), Date.now()).run().catch(() => {});
+      }));
   },
 
   async fetch(request, env) {

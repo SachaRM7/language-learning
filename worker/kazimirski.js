@@ -9,41 +9,14 @@
 //   3. les résultats par page sont fusionnés par racine dans kz_root.
 
 import Anthropic from '@anthropic-ai/sdk';
-import KZ from '../public/data/kazimirski.json' with { type: 'json' };
 import { json } from './http.js';
 
 const MODEL = 'claude-opus-5-5';
-const HAMZA = { 'أ': 'ا', 'إ': 'ا', 'آ': 'ا', 'ء': 'ا', 'ؤ': 'ا', 'ئ': 'ا', 'ى': 'ي', 'ٱ': 'ا' };
-const RANK = Object.fromEntries([...KZ.alphabet].map((c, i) => [c, i]));
-const ANCHORS = KZ.anchors.map(([v, n, lo, hi]) => ({ v, n, lo, hi }));
-
-const norm = r => [...String(r)].map(c => HAMZA[c] || c).join('');
-const valid = r => r && [...norm(r)].every(c => RANK[c] !== undefined);
-function cmp(a, b) {
-  for (let i = 0; i < Math.max(a.length, b.length); i++) {
-    const x = RANK[a[i]] ?? -1, y = RANK[b[i]] ?? -1;
-    if (x !== y) return x - y;
-  }
-  return 0;
-}
-
-/** Page (volume, vue) où commence la racine selon l'index. */
-export function startPage(root) {
-  const r = norm(root);
-  const at = ANCHORS.find(a => cmp(a.hi, r) >= 0) || ANCHORS[ANCHORS.length - 1];
-  return { v: at.v, n: cmp(at.lo, r) > 0 && at.n > 0 ? at.n - 1 : at.n };
-}
-
-/** Racines attendues sur une page : celles qui commencent sur cette page ou la précédente. */
-function targetsFor(roots, v, n) {
-  return roots.filter(r => {
-    const p = startPage(r);
-    return p.v === v && (p.n === n || p.n === n - 1);
-  });
-}
+const VOLUMES = { 1: 'dictionnairearab01bibeuoft', 2: 'dictionnairearab02bibeuoft' };
+const SUBMIT_PER_RUN = 4;   // lots soumis par passage de la tâche planifiée
 
 function iiif(v, n, region) {
-  const ident = KZ.volumes[String(v)];
+  const ident = VOLUMES[v];
   const jp2 = String(n + 1).padStart(4, '0'); // la vue n d'archive.org est l'image _{n+1}.jp2
   return `https://iiif.archive.org/image/iiif/3/${ident}%2f${ident}_jp2.zip%2f${ident}_jp2%2f${ident}_${jp2}.jp2/${region}/max/0/default.jpg`;
 }
@@ -106,13 +79,15 @@ const SCHEMA = {
   additionalProperties: false,
 };
 
-async function lexiconRoots(env) {
-  const { results } = await env.DB.prepare('SELECT lemma, root, pos, en, fr, count FROM quran_lemma WHERE root IS NOT NULL').all();
-  const byRoot = new Map();
-  for (const r of results) {
-    if (!valid(r.root)) continue;
-    if (!byRoot.has(r.root)) byRoot.set(r.root, []);
-    byRoot.get(r.root).push(r);
+/** Lemmes du lexique pour un ensemble de racines (requêtes par paquets : D1 limite les paramètres). */
+async function lemmasFor(env, roots) {
+  const byRoot = new Map(roots.map(r => [r, []]));
+  for (let k = 0; k < roots.length; k += 80) {
+    const part = roots.slice(k, k + 80);
+    const { results } = await env.DB
+      .prepare(`SELECT lemma, root, en, fr, count FROM quran_lemma WHERE root IN (${part.map((_, i) => `?${i + 1}`).join(',')})`)
+      .bind(...part).all();
+    for (const r of results) byRoot.get(r.root)?.push(r);
   }
   return byRoot;
 }
@@ -144,43 +119,54 @@ function pageRequest(v, n, targets, byRoot) {
   };
 }
 
-/** Requêtes du lot pour une liste de pages [[volume, vue], …] (les pages sans racine attendue sont ignorées). */
+/** Requêtes d'un lot : pages [[volume, vue, [racines attendues]], …], cibles calculées hors ligne. */
 export async function buildRequests(env, pages) {
-  const byRoot = await lexiconRoots(env);
-  const roots = [...byRoot.keys()];
+  const byRoot = await lemmasFor(env, [...new Set(pages.flatMap(p => p[2] || []))]);
   return pages
-    .map(([v, n]) => ({ v, n, targets: targetsFor(roots, v, n) }))
+    .map(([v, n, targets = []]) => ({ v, n, targets: targets.filter(r => byRoot.get(r)?.length) }))
     .filter(p => p.targets.length)
     .map(p => pageRequest(p.v, p.n, p.targets, byRoot));
 }
 
-/** Tâche planifiée : soumet le prochain lot en attente, ou relève les résultats d'un lot terminé. */
+/**
+ * Tâche planifiée, conçue pour rester sous la limite de calcul d'un passage :
+ * soumet quelques lots en attente, puis relève au plus un lot terminé.
+ */
 export async function processKazimirski(env) {
   if (!env.DB || !env.ANTHROPIC_API_KEY) return { state: 'not_configured' };
-  const job = await env.DB.prepare("SELECT * FROM kz_job WHERE status IN ('queued', 'submitted') ORDER BY id LIMIT 1").first();
-  if (!job) return { state: 'idle' };
   const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
-  const now = Date.now();
+  const report = { submitted: 0, waiting: 0, ingested: null };
 
-  if (job.status === 'queued') {
+  const { results: queued } = await env.DB
+    .prepare("SELECT id, pages FROM kz_job WHERE status = 'queued' ORDER BY id LIMIT ?1").bind(SUBMIT_PER_RUN).all();
+  for (const job of queued) {
     const requests = await buildRequests(env, JSON.parse(job.pages));
     if (!requests.length) {
-      await env.DB.prepare("UPDATE kz_job SET status = 'ingested', updated_at = ?1 WHERE id = ?2").bind(now, job.id).run();
-      return { state: 'empty', job: job.id };
+      await env.DB.prepare("UPDATE kz_job SET status = 'ingested', updated_at = ?1 WHERE id = ?2").bind(Date.now(), job.id).run();
+      continue;
     }
     const batch = await client.messages.batches.create({ requests });
-    await env.DB.prepare("UPDATE kz_job SET status = 'submitted', batch_id = ?1, updated_at = ?2 WHERE id = ?3")
-      .bind(batch.id, now, job.id).run();
-    return { state: 'submitted', job: job.id, requests: requests.length };
+    await env.DB.prepare("UPDATE kz_job SET status = 'submitted', batch_id = ?1, error = NULL, updated_at = ?2 WHERE id = ?3")
+      .bind(batch.id, Date.now(), job.id).run();
+    report.submitted++;
   }
 
-  const batch = await client.messages.batches.retrieve(job.batch_id);
-  if (batch.processing_status !== 'ended') return { state: 'waiting', job: job.id, counts: batch.request_counts };
+  const { results: submitted } = await env.DB
+    .prepare("SELECT id, batch_id FROM kz_job WHERE status = 'submitted' ORDER BY id LIMIT 6").all();
+  for (const job of submitted) {
+    const batch = await client.messages.batches.retrieve(job.batch_id);
+    if (batch.processing_status !== 'ended') { report.waiting++; continue; }
+    report.ingested = await ingest(env, client, job);
+    break; // une seule ingestion par passage
+  }
+  if (!queued.length && !submitted.length) return { state: 'idle' };
+  return report;
+}
 
+async function ingest(env, client, job) {
+  const now = Date.now();
   let input = 0, output = 0, ok = 0, failed = 0;
-  const writes = [];
-  const stmt = env.DB.prepare(`INSERT INTO kz_page (volume, view, job_id, result, updated_at) VALUES (?1, ?2, ?3, ?4, ?5)
-    ON CONFLICT (volume, view) DO UPDATE SET job_id = excluded.job_id, result = excluded.result, updated_at = excluded.updated_at`);
+  const pages = [];
   for await (const item of await client.messages.batches.results(job.batch_id)) {
     const [, v, n] = item.custom_id.match(/^v(\d+)-n(\d+)$/) || [];
     if (item.result.type !== 'succeeded') { failed++; continue; }
@@ -189,38 +175,46 @@ export async function processKazimirski(env) {
     output += msg.usage.output_tokens || 0;
     if (msg.stop_reason !== 'end_turn') { failed++; continue; }
     const text = msg.content.filter(b => b.type === 'text').map(b => b.text).join('');
-    try { JSON.parse(text); } catch { failed++; continue; }
+    let data;
+    try { data = JSON.parse(text); } catch { failed++; continue; }
     ok++;
-    writes.push(stmt.bind(Number(v), Number(n), job.id, text, now));
+    pages.push({ v: Number(v), n: Number(n), text, data });
   }
+  const stmt = env.DB.prepare(`INSERT INTO kz_page (volume, view, job_id, result, updated_at) VALUES (?1, ?2, ?3, ?4, ?5)
+    ON CONFLICT (volume, view) DO UPDATE SET job_id = excluded.job_id, result = excluded.result, updated_at = excluded.updated_at`);
+  const writes = pages.map(p => stmt.bind(p.v, p.n, job.id, p.text, now));
   for (let k = 0; k < writes.length; k += 50) await env.DB.batch(writes.slice(k, k + 50));
-  await rebuildRoots(env);
+  await mergeRoots(env, pages);
   await env.DB.prepare("UPDATE kz_job SET status = 'ingested', input_tokens = ?1, output_tokens = ?2, error = ?3, updated_at = ?4 WHERE id = ?5")
     .bind(input, output, failed ? `${failed} page(s) en échec` : null, now, job.id).run();
-  return { state: 'ingested', job: job.id, ok, failed, input, output };
+  return { job: job.id, ok, failed, input, output };
 }
 
-/** Fusionne les résultats de toutes les pages lues, racine par racine. */
-async function rebuildRoots(env) {
-  const { results } = await env.DB.prepare('SELECT volume, view, result FROM kz_page ORDER BY volume, view').all();
+/** Fusionne les pages lues dans la synthèse par racine (seulement les racines concernées). */
+async function mergeRoots(env, pages) {
+  const found = pages.flatMap(p => (p.data.roots || []).filter(r => r.found && r.root).map(r => ({ ...r, page: [p.v, p.n] })));
+  const roots = [...new Set(found.map(r => r.root))];
+  if (!roots.length) return;
   const merged = new Map();
-  for (const row of results) {
-    let data;
-    try { data = JSON.parse(row.result); } catch { continue; }
-    for (const r of data.roots || []) {
-      if (!r.found || !r.root) continue;
-      const m = merged.get(r.root) || { sense: '', lemmas: {}, extra: [], pages: [] };
-      if (!m.sense && r.sense) m.sense = r.sense;
-      for (const l of r.lemmas || []) if (l.lemma && l.fr && !m.lemmas[l.lemma]) m.lemmas[l.lemma] = { fr: l.fr, ok: l.ok, note: l.note || '' };
-      for (const e of r.extra || []) if (e.ar && e.fr && m.extra.length < 8 && !m.extra.some(x => x.ar === e.ar)) m.extra.push(e);
-      m.pages.push([row.volume, row.view]);
-      merged.set(r.root, m);
-    }
+  for (let k = 0; k < roots.length; k += 80) {
+    const part = roots.slice(k, k + 80);
+    const { results } = await env.DB
+      .prepare(`SELECT root, data FROM kz_root WHERE root IN (${part.map((_, i) => `?${i + 1}`).join(',')})`)
+      .bind(...part).all();
+    for (const r of results) { try { merged.set(r.root, JSON.parse(r.data)); } catch { /* ignore */ } }
+  }
+  for (const r of found.sort((a, b) => a.page[0] - b.page[0] || a.page[1] - b.page[1])) {
+    const m = merged.get(r.root) || { sense: '', lemmas: {}, extra: [], pages: [] };
+    if (!m.sense && r.sense) m.sense = r.sense;
+    for (const l of r.lemmas || []) if (l.lemma && l.fr && !m.lemmas[l.lemma]) m.lemmas[l.lemma] = { fr: l.fr, ok: l.ok, note: l.note || '' };
+    for (const e of r.extra || []) if (e.ar && e.fr && m.extra.length < 8 && !m.extra.some(x => x.ar === e.ar)) m.extra.push(e);
+    if (!m.pages.some(p => p[0] === r.page[0] && p[1] === r.page[1])) m.pages.push(r.page);
+    merged.set(r.root, m);
   }
   const now = Date.now();
   const stmt = env.DB.prepare(`INSERT INTO kz_root (root, sense, data, updated_at) VALUES (?1, ?2, ?3, ?4)
     ON CONFLICT (root) DO UPDATE SET sense = excluded.sense, data = excluded.data, updated_at = excluded.updated_at`);
-  const writes = [...merged].map(([root, m]) => stmt.bind(root, m.sense, JSON.stringify(m), now));
+  const writes = roots.map(root => stmt.bind(root, merged.get(root).sense, JSON.stringify(merged.get(root)), now));
   for (let k = 0; k < writes.length; k += 50) await env.DB.batch(writes.slice(k, k + 50));
 }
 
