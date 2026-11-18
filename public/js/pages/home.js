@@ -144,7 +144,7 @@ function todayCard(steps, { xp, goal, stats, streak }) {
           <div class="today__title">${reached ? 'Objectif atteint, bravo !' : 'Ton plan du jour'}</div>
         </div>
         <div class="today__ring" title="Objectif du jour">
-          ${ring(pct, { size: 58, stroke: 6, label: reached ? '✓' : `${Math.round(pct)}%`, color: reached ? 'var(--success)' : 'var(--gold)' })}
+          ${ring(pct, { size: 58, stroke: 6, label: reached ? '✓' : `${Math.round(pct)}%`, color: reached ? 'var(--success)' : '' })}
           <span><strong data-xp>0</strong>/${goal} XP</span>
         </div>
       </div>
@@ -163,7 +163,7 @@ function todayCard(steps, { xp, goal, stats, streak }) {
           </li>`).join('')}
       </ol>
 
-      <button class="btn btn--gold btn--lg btn--block today__cta" data-navigate="${current.path}">${icon('play')} ${escapeHtml(current.cta)}</button>
+      <button class="btn btn--primary btn--lg btn--block today__cta" data-navigate="${current.path}">${icon('play')} ${escapeHtml(current.cta)}</button>
 
       <div class="today__week">
         <div class="week" aria-label="Activité des 7 derniers jours">
