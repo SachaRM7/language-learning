@@ -125,6 +125,11 @@ class Database {
     await this._put('lessonProgress', { ...data, key, courseId, lessonId });
   }
 
+  async getAllLessonProgress(courseId) {
+    const all = await this._getAll('lessonProgress');
+    return all.filter(e => e.courseId === courseId);
+  }
+
   async getStats(courseId) {
     const stats = await this._get('stats', courseId);
     return stats || {

@@ -107,6 +107,20 @@ function _renderHomeUI(course, dueCount, lastLesson, stats) {
               <div class="home-mode-card__desc">28 lettres, diacritiques, règles</div>
             </div>
           </div>
+          <div class="home-mode-card" data-navigate="/coran" data-mode="coran">
+            <div class="home-mode-card__icon-wrap home-mode-card__icon-wrap--ar">قُرْآن</div>
+            <div>
+              <div class="home-mode-card__title">Coran</div>
+              <div class="home-mode-card__desc">12 récitateurs, lecture synchronisée</div>
+            </div>
+          </div>
+          <div class="home-mode-card" data-navigate="/tajwid" data-mode="tajwid">
+            <div class="home-mode-card__icon-wrap home-mode-card__icon-wrap--ar">تَجْوِيد</div>
+            <div>
+              <div class="home-mode-card__title">Tajwid</div>
+              <div class="home-mode-card__desc">Les règles de récitation, niveau par niveau</div>
+            </div>
+          </div>
           <div class="home-mode-card" data-navigate="/racines" data-mode="racines">
             <div class="home-mode-card__icon-wrap">🌱</div>
             <div>

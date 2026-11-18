@@ -1,0 +1,214 @@
+/* css/pages/tajwid.css — Parcours Tajwid : niveaux, leçons, exemples audio, quiz */
+
+/* ── Page des niveaux ── */
+.tajwid-page .level-tabs__tab { font-size: var(--text-sm); }
+.tajwid-page .page-header { border-bottom: 0; color: #fff; }
+.tajwid-page .page-header .back-btn { color: #fff; border-color: rgba(255, 255, 255, 0.35); background: transparent; }
+.tajwid-panel { padding-bottom: calc(var(--bottom-nav-height) + var(--space-2xl)); }
+
+.tajwid-level-head { margin-bottom: var(--space-lg); }
+.tajwid-level-head__eyebrow { font-size: var(--text-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+.tajwid-level-head__title { font-size: var(--text-2xl); font-weight: 700; margin-top: 2px; }
+.tajwid-level-head__desc { font-size: var(--text-sm); color: var(--text-secondary); margin-top: 4px; line-height: 1.5; }
+.tajwid-progress { display: flex; align-items: center; gap: var(--space-md); margin-top: var(--space-md); }
+.tajwid-progress__track { flex: 1; height: 6px; border-radius: 6px; background: var(--border); overflow: hidden; }
+.tajwid-progress__bar { height: 100%; border-radius: 6px; transition: width 0.4s ease; }
+.tajwid-progress__label { font-size: var(--text-xs); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+
+.tajwid-lessons { display: flex; flex-direction: column; position: relative; }
+.tajwid-lesson {
+  display: flex; align-items: center; gap: var(--space-md);
+  width: 100%;
+  padding: var(--space-md) var(--space-sm);
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit; text-align: left;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast);
+}
+.tajwid-lesson:hover { background: var(--bg-hover); }
+.tajwid-lesson__step {
+  width: 38px; height: 38px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  font-weight: 700; font-size: var(--text-sm);
+  border: 2px solid var(--step-color);
+  color: var(--step-color);
+}
+.tajwid-lesson__step svg { width: 18px; height: 18px; }
+.tajwid-lesson--done .tajwid-lesson__step { background: var(--step-color); color: #fff; }
+.tajwid-lesson--locked { cursor: not-allowed; }
+.tajwid-lesson--locked .tajwid-lesson__step { border-color: var(--border); color: var(--text-tertiary); }
+.tajwid-lesson--locked .tajwid-lesson__title, .tajwid-lesson--locked .tajwid-lesson__ar { color: var(--text-tertiary); }
+.tajwid-lesson__body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.tajwid-lesson__title { font-weight: 600; }
+.tajwid-lesson__sub { font-size: var(--text-xs); color: var(--text-tertiary); margin-top: 2px; }
+.tajwid-lesson__ar { font-family: var(--font-arabic); font-size: 1.05rem; color: var(--text-secondary); flex-shrink: 0; max-width: 34%; text-align: left; }
+
+.tajwid-unlock {
+  display: block;
+  margin: var(--space-xl) auto 0;
+  border: 0; background: transparent;
+  color: var(--text-tertiary);
+  font: inherit; font-size: var(--text-sm);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.tajwid-toast {
+  position: sticky;
+  bottom: var(--space-md);
+  margin-top: var(--space-lg);
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  text-align: center;
+  font-size: var(--text-sm);
+  box-shadow: var(--shadow-md);
+}
+.tajwid-toast[hidden] { display: none; }
+
+/* ── Leçon ── */
+.tj-lesson, .tj-quiz, .tj-result { --lvl: #2e7d32; padding-bottom: var(--space-4xl); }
+
+.tj-hero {
+  text-align: center;
+  padding: var(--space-2xl) var(--space-lg);
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(circle at 50% -20%, color-mix(in srgb, var(--lvl) 45%, transparent), transparent 70%),
+    var(--bg-secondary);
+  border: 1px solid color-mix(in srgb, var(--lvl) 50%, var(--border));
+  margin-bottom: var(--space-xl);
+}
+.tj-hero__eyebrow { font-size: var(--text-xs); color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+.tj-hero__ar { font-family: var(--font-quran); font-size: 2.3rem; line-height: 1.8; margin-top: var(--space-sm); }
+.tj-hero__title { font-size: var(--text-xl); font-weight: 700; }
+.tj-hero__sub { color: var(--text-secondary); font-size: var(--text-sm); margin: 4px 0 var(--space-sm); }
+
+.tj-blocks { display: flex; flex-direction: column; gap: var(--space-lg); }
+.tj-p { line-height: 1.7; color: var(--text-secondary); }
+.tj-p strong, .tj-key strong, .tj-tip strong, .tj-table strong { color: var(--text-primary); }
+
+.tj-tip {
+  display: flex; gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--lvl) 14%, var(--bg-secondary));
+  border: 1px solid color-mix(in srgb, var(--lvl) 40%, transparent);
+  font-size: var(--text-sm); line-height: 1.6;
+}
+.tj-tip svg { width: 18px; height: 18px; flex-shrink: 0; color: var(--lvl); margin-top: 2px; filter: brightness(1.4); }
+
+.tj-key { display: flex; flex-direction: column; gap: var(--space-sm); }
+.tj-key > div { padding: var(--space-md) var(--space-lg); border-radius: var(--radius-lg); background: var(--bg-secondary); border: 1px solid var(--border); }
+.tj-key dt { font-weight: 700; margin-bottom: 4px; }
+.tj-key dd { margin: 0; font-size: var(--text-sm); line-height: 1.6; color: var(--text-secondary); }
+
+.tj-letters { padding: var(--space-md) var(--space-lg); border-radius: var(--radius-lg); background: var(--bg-secondary); border: 1px solid var(--border); }
+.tj-letters__label { font-size: var(--text-xs); color: var(--text-tertiary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+.tj-letters__row { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin-top: var(--space-sm); }
+.tj-letters__row span {
+  min-width: 46px; height: 46px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--lvl) 18%, var(--bg-card));
+  font-family: var(--font-arabic); font-size: 1.6rem;
+}
+
+.tj-table-wrap { overflow-x: auto; border-radius: var(--radius-lg); border: 1px solid var(--border); }
+.tj-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
+.tj-table th { text-align: left; padding: 10px 12px; background: var(--bg-card); color: var(--text-secondary); font-weight: 600; font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.03em; }
+.tj-table td { padding: 10px 12px; border-top: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+.tj-inline-ar { font-family: var(--font-quran); font-size: 1.2em; line-height: 1.4; unicode-bidi: isolate; }
+
+/* Exemple coranique */
+.tj-ex {
+  margin: 0;
+  padding: var(--space-lg);
+  border-radius: var(--radius-xl);
+  background: var(--bg-secondary);
+  border: 1px solid rgba(var(--quran-accent-rgb), 0.3);
+}
+.tj-ex.is-playing { border-color: var(--quran-accent); box-shadow: 0 0 0 3px rgba(var(--quran-accent-rgb), 0.12); }
+.tj-ex__ar {
+  font-family: var(--font-quran);
+  font-size: 2rem;
+  line-height: 2.1;
+  text-align: center;
+  direction: rtl;
+}
+.tj-ex--compact .tj-ex__ar { font-size: 2.2rem; }
+.tj-ex__w { display: inline-block; padding: 0 0.1em; border-radius: 8px; transition: background var(--transition-fast); }
+.tj-ex__w.is-cur { background: rgba(var(--quran-accent-rgb), 0.2); }
+.tj-ex__tr { text-align: center; font-size: var(--text-sm); color: var(--text-tertiary); font-style: italic; margin-top: var(--space-xs); }
+.tj-ex__foot { display: flex; align-items: center; gap: var(--space-sm); margin-top: var(--space-md); flex-wrap: wrap; }
+.tj-ex__play {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 0;
+  background: var(--quran-accent);
+  color: #121212;
+  font: inherit; font-size: var(--text-sm); font-weight: 700;
+  cursor: pointer;
+}
+.tj-ex.is-playing .tj-ex__play { background: var(--text-primary); color: var(--bg-primary); }
+.tj-ex__rate {
+  padding: 7px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit; font-size: var(--text-xs); font-weight: 700;
+  cursor: pointer;
+}
+.tj-ex__ref { margin-left: auto; font-size: var(--text-xs); color: var(--text-tertiary); text-decoration: none; }
+.tj-ex__ref:hover { color: var(--quran-accent); text-decoration: underline; }
+.tj-ex__note { margin-top: var(--space-md); font-size: var(--text-sm); color: var(--text-secondary); line-height: 1.6; }
+
+.tj-cta { display: flex; flex-direction: column; gap: var(--space-sm); margin-top: var(--space-2xl); }
+.tj-cta .primary-btn, .tj-result .primary-btn { gap: var(--space-sm); background: var(--lvl); }
+.tj-cta .primary-btn svg { width: 18px; height: 18px; }
+.tj-cta .secondary-btn { gap: var(--space-sm); }
+.tj-cta .secondary-btn svg { width: 16px; height: 16px; }
+
+/* ── Quiz ── */
+.tj-quiz__progress { display: flex; align-items: center; gap: var(--space-md); font-size: var(--text-xs); color: var(--text-tertiary); margin-bottom: var(--space-xl); font-variant-numeric: tabular-nums; }
+.tj-quiz__track { flex: 1; height: 6px; border-radius: 6px; background: var(--border); overflow: hidden; }
+.tj-quiz__bar { height: 100%; background: var(--lvl); filter: brightness(1.3); transition: width 0.3s ease; }
+.tj-quiz__q { font-size: var(--text-xl); font-weight: 700; line-height: 1.4; margin-bottom: var(--space-lg); }
+.tj-quiz .tj-ex { margin-bottom: var(--space-lg); }
+.tj-quiz__opts { display: flex; flex-direction: column; gap: var(--space-sm); }
+.tj-opt {
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  border: 1.5px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font: inherit; font-size: var(--text-base); text-align: left;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+.tj-opt:hover:not(:disabled) { border-color: var(--border-hover); background: var(--bg-hover); }
+.tj-opt:disabled { cursor: default; }
+.tj-opt.is-correct { border-color: var(--accent-green); background: rgba(63, 185, 80, 0.14); }
+.tj-opt.is-wrong { border-color: var(--accent-red); background: rgba(248, 81, 73, 0.12); }
+.tj-opt:disabled:not(.is-correct):not(.is-wrong) { opacity: 0.55; }
+.tj-feedback { margin-top: var(--space-lg); padding: var(--space-md) var(--space-lg); border-radius: var(--radius-lg); font-size: var(--text-sm); line-height: 1.6; }
+.tj-feedback p { margin-top: 4px; color: var(--text-secondary); }
+.tj-feedback--ok { background: rgba(63, 185, 80, 0.12); border: 1px solid rgba(63, 185, 80, 0.4); }
+.tj-feedback--ok strong { color: var(--accent-green); }
+.tj-feedback--ko { background: rgba(248, 81, 73, 0.1); border: 1px solid rgba(248, 81, 73, 0.35); }
+.tj-feedback--ko strong { color: var(--accent-red); }
+.tj-quiz__next { margin-top: var(--space-lg); background: var(--lvl); }
+
+/* ── Résultat ── */
+.tj-result { text-align: center; padding-top: var(--space-4xl); }
+.tj-result__emoji { font-size: 3.5rem; }
+.tj-result__score { font-size: 3rem; font-weight: 800; margin-top: var(--space-sm); font-variant-numeric: tabular-nums; }
+.tj-result__msg { color: var(--text-secondary); line-height: 1.6; margin: var(--space-md) auto var(--space-2xl); max-width: 340px; }
+.tj-result__actions { display: flex; flex-direction: column; gap: var(--space-sm); }

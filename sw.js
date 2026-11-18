@@ -1,8 +1,11 @@
 // Service Worker — HelloArabic
 // Stratégie : cache-first (CSS/JS/images), network-first (JSON), stale-while-revalidate (audio)
 
-const CACHE_VERSION = 'v1.0.0';
+const CACHE_VERSION = 'v1.1.0';
 const CACHE_NAME = `helloarabic-${CACHE_VERSION}`;
+// Textes du Coran (API) : cache séparé, conservé entre les versions de l'app
+const QURAN_CACHE = 'helloarabic-quran-api';
+const QURAN_API_HOSTS = ['api.quran.com', 'api.alquran.cloud'];
 
 const PRECACHE_ASSETS = [
   '/',
@@ -15,6 +18,8 @@ const PRECACHE_ASSETS = [
   '/css/pages/words.css',
   '/css/pages/conversations.css',
   '/css/pages/review.css',
+  '/css/pages/quran.css',
+  '/css/pages/tajwid.css',
   '/js/app.js',
   '/js/router.js',
   '/js/store.js',
@@ -22,6 +27,16 @@ const PRECACHE_ASSETS = [
   '/js/audio.js',
   '/js/utils.js',
   '/js/srs.js',
+  '/js/quran/api.js',
+  '/js/quran/prefs.js',
+  '/js/quran/tajweed.js',
+  '/js/quran/range-player.js',
+  '/js/pages/quran-home.js',
+  '/js/pages/quran-reader.js',
+  '/js/pages/tajwid-home.js',
+  '/js/pages/tajwid-lesson.js',
+  '/data/quran/surahs.json',
+  '/data/tajwid/levels.json',
   '/manifest.json',
 ];
 
@@ -39,7 +54,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) =>
       Promise.all(
         keys
-          .filter((key) => key !== CACHE_NAME)
+          .filter((key) => key !== CACHE_NAME && key !== QURAN_CACHE)
           .map((key) => caches.delete(key))
       )
     )
@@ -54,6 +69,15 @@ self.addEventListener('fetch', (event) => {
 
   // Ne pas intercepter les requêtes non-GET ou cross-origin non-essentielles
   if (request.method !== 'GET') return;
+
+  // Coran : données JSON des API (texte, minutage) — disponibles hors ligne une fois lues
+  if (QURAN_API_HOSTS.includes(url.hostname)) {
+    event.respondWith(staleWhileRevalidate(request, QURAN_CACHE));
+    return;
+  }
+
+  // Récitations (MP3 externes) : laissées au navigateur (requêtes partielles / streaming)
+  if (url.origin !== self.location.origin && /\.mp3$/i.test(url.pathname)) return;
 
   // Audio : stale-while-revalidate
   if (url.pathname.startsWith('/audio/')) {
@@ -100,8 +124,8 @@ async function networkFirst(request) {
   }
 }
 
-async function staleWhileRevalidate(request) {
-  const cache = await caches.open(CACHE_NAME);
+async function staleWhileRevalidate(request, cacheName = CACHE_NAME) {
+  const cache = await caches.open(cacheName);
   const cached = await cache.match(request);
   const fetchPromise = fetch(request).then((response) => {
     if (response.ok) cache.put(request, response.clone());

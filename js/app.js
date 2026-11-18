@@ -21,6 +21,10 @@ import { renderReviewSession } from './pages/review-session.js';
 import { renderAlphabet } from './pages/alphabet.js';
 import { renderRoots } from './pages/roots.js';
 import { renderProfil } from './pages/profil.js';
+import { renderQuranHome } from './pages/quran-home.js';
+import { renderQuranReader } from './pages/quran-reader.js';
+import { renderTajwidHome } from './pages/tajwid-home.js';
+import { renderTajwidLesson } from './pages/tajwid-lesson.js';
 
 async function init() {
   await db.init();
@@ -94,6 +98,14 @@ async function init() {
   route('/alphabet', renderAlphabet);
   route('/racines', renderRoots);
   route('/profil', renderProfil);
+
+  // Coran & Tajwid
+  route('/coran', renderQuranHome);
+  route('/coran/:surah', renderQuranReader);
+  route('/coran/:surah/:ayah', renderQuranReader);
+  route('/tajwid', renderTajwidHome);
+  route('/tajwid/niveau/:levelId', renderTajwidHome);
+  route('/tajwid/lecon/:lessonId', renderTajwidLesson);
 
   startRouter();
   feather.replace();
