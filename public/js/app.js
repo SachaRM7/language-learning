@@ -37,10 +37,14 @@ import { renderCoranSurah } from './pages/coran-surah.js';
 import { renderCoranHifz } from './pages/coran-hifz.js';
 import { renderCoranReview } from './pages/coran-review.js';
 import { renderComprendre, renderComprendreSession } from './pages/comprendre.js';
-import { stopAudio } from './components/quran-audio.js';
+import { stopAudio, unlockRecitations } from './components/quran-audio.js';
+import { unlockAudio } from './audio.js';
 
 async function init() {
   initMotion();
+  // iPhone : le son doit être « débloqué » par un premier geste de l'utilisateur
+  const unlock = () => { unlockAudio(); unlockRecitations(); };
+  ['touchend', 'click', 'keydown'].forEach(ev => document.addEventListener(ev, unlock, { once: true, capture: true }));
   await db.init();
 
   const prefs = await db.getPreferences();

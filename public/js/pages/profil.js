@@ -10,6 +10,8 @@ import { getBoxDistribution } from '../srs.js';
 import { icon } from '../icons.js';
 import { applyTheme, toast, haptic, progressBar, animateCount } from '../ui.js';
 import { liveStreak, last7Days, todayXP, DAILY_GOAL_DEFAULT } from '../activity.js';
+import { playWord, ttsStatus } from '../audio.js';
+import { playUrl } from '../components/quran-audio.js';
 import { syncNow, syncStatus } from '../sync.js';
 import { escapeHtml } from '../utils.js';
 
@@ -122,6 +124,11 @@ export async function renderProfil() {
           ${_toggleRow('pref-translit', 'Translittération', 'Afficher la prononciation en lettres latines', 'languages', 'var(--info-soft)', 'var(--info)', prefs.showTranslit !== false)}
           ${_toggleRow('pref-harakats', 'Harakats', 'Voyelles brèves : fatha, damma, kasra', 'pen', 'var(--primary-soft)', 'var(--primary)', prefs.showHarakats !== false)}
           ${_toggleRow('pref-autoplay', 'Lecture automatique', 'Prononcer les mots à leur apparition', 'volume-2', 'var(--gold-soft)', 'var(--gold)', !!prefs.autoPlay)}
+          <button class="set-row set-row--btn" id="btn-sound">
+            <span class="set-row__icon" style="--tint:var(--violet-soft);--tint-ink:var(--violet)">${icon('headphones')}</span>
+            <span class="set-row__text"><span class="set-row__label">Tester le son</span><span class="set-row__hint" id="sound-hint">Voix arabe et récitation du Coran</span></span>
+            <span class="row__chev">${icon('play')}</span>
+          </button>
           <div class="set-row set-row--stack">
             <span class="set-row__icon" style="--tint:var(--success-soft);--tint-ink:var(--success)">${icon('check-circle')}</span>
             <span class="set-row__text">
@@ -230,6 +237,7 @@ function _bindEvents(course) {
   bindToggle('pref-harakats', 'showHarakats');
   bindToggle('pref-autoplay', 'autoPlay');
 
+  document.getElementById('btn-sound')?.addEventListener('click', _testSound);
   document.getElementById('btn-export')?.addEventListener('click', () => _export(course));
   document.getElementById('btn-import')?.addEventListener('change', e => _import(e, course));
   document.getElementById('btn-reset')?.addEventListener('click', () => {
@@ -357,4 +365,21 @@ function _syncGroup() {
         </button>
       </div>
     </section>`;
+}
+
+/** Diagnostic du son : voix de synthèse arabe, puis une récitation (fichier audio). */
+async function _testSound() {
+  const hint = document.getElementById('sound-hint');
+  const { available, voice } = ttsStatus('ar-SA');
+  const say = msg => { if (hint) hint.textContent = msg; };
+  if (!available) say('Ce navigateur ne propose pas de voix de synthèse.');
+  else {
+    say(voice ? `Voix : ${voice.name} — tu dois entendre « مَرْحَبًا »` : 'Aucune voix arabe trouvée : essai avec la voix par défaut…');
+    await playWord('مَرْحَبًا', 'ar-SA');
+  }
+  say('Puis une récitation : « بِسْمِ ٱللَّهِ… »');
+  await playUrl('https://verses.quran.com/Alafasy/mp3/001001.mp3');
+  say(voice
+    ? 'Pas de voix ? Désactive le mode silencieux de l’iPhone et monte le volume. Récitation seule audible ? Réglages › Accessibilité › Contenu énoncé › Voix › Arabe.'
+    : 'Installe une voix arabe : Réglages › Accessibilité › Contenu énoncé › Voix › Arabe, puis recharge l’app.');
 }

@@ -64,3 +64,13 @@ export function stopAudio() {
   if (_audio) _audio.pause();
   setPlaying(null, false);
 }
+
+/** Débloque le lecteur des récitations pendant un geste (iOS), sans rien jouer d'audible. */
+export function unlockRecitations() {
+  try {
+    const a = audio();
+    if (a.src) return;
+    a.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
+    a.play().then(() => a.pause()).catch(() => {});
+  } catch { /* ignore */ }
+}
