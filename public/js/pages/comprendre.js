@@ -23,7 +23,7 @@ import { recordActivity } from '../activity.js';
 import { loadSurah, loadLexicon, lemmaMeaning, AUDIO_VERSE, AUDIO_WORD } from '../quran.js';
 import { computeMasteryProfile, getEffectiveScore, getTrackedDimensions, defaultDimensionForNotion, maxScaffolding, DIMENSION_LABELS } from '../pedagogy/mastery.js';
 import { buildSessionPlan, evaluatePassageReadiness, tokenNotionIds } from '../pedagogy/scheduler.js';
-import { loadLibrary, loadProfile, recordEvidence, setOverride, evidence, levelOf, rootDisplay } from '../pedagogy/engine.js';
+import { loadLibrary, loadProfile, recordEvidence, setOverride, evidence, levelOf, rootDisplay, suggestPassage } from '../pedagogy/engine.js';
 
 const $app = () => document.getElementById('app');
 const HARAKAT = /[ً-ٰٟۖ-ۭـ]/g;
@@ -68,7 +68,7 @@ export async function renderComprendre() {
   const texts = passages.filter(p => p.corpus !== 'quran');
   const quran = passages.filter(p => p.corpus === 'quran');
   const readiness = Object.fromEntries(passages.map(p => [p.id, evaluatePassageReadiness(p, mastery, lib.catalog)]));
-  const suggestion = pickSuggestion(passages, readiness, prof);
+  const suggestion = suggestPassage(prof).passage;
 
   const worked = Object.values(lib.catalog)
     .filter(n => mastery[n.id] && (prof.stored.some(e => e.notionId === n.id) || prof.overrides[n.id] || prof.vocabularyKnown.has(n.id)))
@@ -76,7 +76,7 @@ export async function renderComprendre() {
     .sort((a, b) => a.score - b.score);
 
   $app().innerHTML = `
-    ${renderHeader({ title: 'Comprendre', large: true, eyebrow: 'Lire de vrais textes', titleAr: 'الفَهْم', back: '/home' })}
+    ${renderHeader({ title: 'Comprendre', large: true, eyebrow: 'Lire de vrais textes', titleAr: 'الفَهْم' })}
     <main class="page-content page-content--nav cp-home">
       <div class="stagger">
         <section class="cp-hero">
@@ -113,14 +113,6 @@ export async function renderComprendre() {
     ${renderBottomNav('explore')}`;
 
   $app().querySelectorAll('[data-notion]').forEach(b => b.addEventListener('click', () => openNotionSheet(b.dataset.notion, renderComprendre)));
-}
-
-function pickSuggestion(passages, readiness, prof) {
-  const done = new Set(prof.stored.filter(e => e.sourceModule === 'reread' || e.sourceModule === 'transfer').map(e => e.passageId));
-  const order = { syntax_to_discover: 0, ready_now: 1, prepare_first: 2 };
-  return [...passages]
-    .filter(p => !done.has(p.id))
-    .sort((a, b) => order[readiness[a.id].status] - order[readiness[b.id].status])[0] || passages[0];
 }
 
 function previewText(p) {

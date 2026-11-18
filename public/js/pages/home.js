@@ -1,4 +1,4 @@
-// js/pages/home.js — Accueil : salutation, série, objectif du jour, reprise du parcours, exploration, mot du jour
+// js/pages/home.js — Accueil : salutation, plan du jour (une seule action évidente), raccourcis, mot du jour
 
 import { store } from '../store.js';
 import { navigate } from '../router.js';
@@ -6,27 +6,30 @@ import { renderBottomNav } from '../components/bottom-nav.js';
 import { escapeHtml } from '../utils.js';
 import { db } from '../db.js';
 import { icon } from '../icons.js';
-import { ring, progressBar, greeting, animateCount } from '../ui.js';
+import { ring, greeting, animateCount } from '../ui.js';
 import { playWord } from '../audio.js';
 import { liveStreak, todayXP, last7Days, dayKey, DAILY_GOAL_DEFAULT } from '../activity.js';
 import { getParcoursState, getDuePhrases } from '../parcours.js';
 import { ensureAllDecks } from '../decks.js';
 import { loadQuranIndex, learningOrder, memorizedVerses, dueVerses } from '../quran.js';
+import { loadProfile, suggestPassage } from '../pedagogy/engine.js';
 
 const $app = () => document.getElementById('app');
 
-const EXPLORE = [
-  { path: '/mots',          title: 'Vocabulaire', desc: '767 mots · 94 listes', glyph: 'ك', ic: 'layers',   tone: 'primary' },
-  { path: '/conversations', title: 'Dialogues',   desc: 'Situations réelles',    glyph: 'ح', ic: 'messages', tone: 'gold' },
-  { path: '/alphabet',      title: 'Alphabet',    desc: '28 lettres & voyelles', glyph: 'أ', ic: 'languages', tone: 'violet' },
-  { path: '/racines',       title: 'Racines',     desc: 'Familles de mots',      glyph: 'ج', ic: 'sprout',   tone: 'info' },
+const SHORTCUTS = [
+  { id: 'coran',      path: '/coran',         title: 'Coran',      ic: 'book-open', tone: 'gold' },
+  { id: 'comprendre', path: '/comprendre',    title: 'Comprendre', ic: 'reader',    tone: 'primary' },
+  { id: 'karim',      path: '/tuteur',        title: 'Karim IA',   ic: 'sparkles',  tone: 'violet' },
+  { id: 'dialogues',  path: '/conversations', title: 'Dialogues',  ic: 'messages',  tone: 'gold' },
+  { id: 'alphabet',   path: '/alphabet',      title: 'Alphabet',   ic: 'languages', tone: 'violet' },
+  { id: 'racines',    path: '/racines',       title: 'Racines',    ic: 'sprout',    tone: 'info' },
 ];
 
 export async function renderHome() {
   const course = store.get('currentCourse');
   if (!course) { navigate('/'); return; }
 
-  const [dueWords, stats, parcours, duePhrases, quranIndex, memorized, dueV] = await Promise.all([
+  const [dueWords, stats, parcours, duePhrases, quranIndex, memorized, dueV, reading] = await Promise.all([
     db.getDueWords(course.id),
     db.getStats(course.id),
     getParcoursState(),
@@ -34,6 +37,7 @@ export async function renderHome() {
     loadQuranIndex().catch(() => null),
     memorizedVerses().catch(() => new Set()),
     dueVerses().catch(() => []),
+    loadProfile().then(suggestPassage).catch(() => null),
   ]);
   const dueTotal = dueWords.length + duePhrases.length + dueV.length;
   store.set('dueCount', dueTotal);
@@ -42,6 +46,8 @@ export async function renderHome() {
   const streak = liveStreak(stats);
   const xp = todayXP(stats);
   const goal = DAILY_GOAL_DEFAULT;
+  const quranNext = quranIndex ? nextVerse(quranIndex, memorized) : null;
+  const steps = todaySteps({ dueWords: dueWords.length, duePhrases: duePhrases.length, dueVerses: dueV.length, parcours, reading, quranNext, memorized });
 
   $app().innerHTML = `
     <header class="home-top">
@@ -59,16 +65,11 @@ export async function renderHome() {
 
     <main class="page-content page-content--nav home">
       <div class="stagger">
-        ${heroCard(parcours)}
-        ${goalCard(xp, goal, stats)}
-        ${dueTotal > 0 ? reviewCard(dueWords.length, duePhrases.length, dueV.length) : ''}
-        ${quranIndex ? quranCard(quranIndex, memorized) : ''}
-        ${tutorCard()}
-        ${readCard()}
-        <section class="section">
+        ${todayCard(steps, { xp, goal, stats, streak })}
+        <section class="section shortcuts-sec">
           <div class="section__head"><h2 class="section__title">Explorer</h2></div>
-          <div class="bento">
-            ${EXPLORE.map(exploreTile).join('')}
+          <div class="shortcuts">
+            ${SHORTCUTS.map(t => shortcut(t, { memorized, reading })).join('')}
           </div>
         </section>
         <section class="section" id="wotd-slot">
@@ -85,51 +86,86 @@ export async function renderHome() {
   loadWordOfTheDay(course);
 }
 
-// ── Carte « Continue ton parcours » ───────────────────────────────
-function heroCard(p) {
-  const cur = p.current;
-  if (!cur) {
-    return `
-      <section class="hero hero--done pressable" data-navigate="/parcours">
-        <div class="hero__eyebrow">${icon('trophy')} Parcours terminé</div>
-        <div class="hero__title">Bravo, tu as fini tous les modules !</div>
-        <div class="hero__sub">Révise tes phrases pour les garder en mémoire.</div>
-      </section>`;
+// ── Plan du jour : une seule action évidente, dans le bon ordre ───────────
+function todaySteps({ dueWords, duePhrases, dueVerses, parcours, reading, quranNext, memorized }) {
+  const due = dueWords + duePhrases + dueVerses;
+  const parts = [
+    dueWords ? `${dueWords} mot${dueWords > 1 ? 's' : ''}` : '',
+    duePhrases ? `${duePhrases} phrase${duePhrases > 1 ? 's' : ''}` : '',
+    dueVerses ? `${dueVerses} verset${dueVerses > 1 ? 's' : ''}` : '',
+  ].filter(Boolean).join(' · ');
+  const steps = [{
+    id: 'review', ic: 'refresh-cw',
+    title: due ? `Réviser ${due} élément${due > 1 ? 's' : ''}` : 'Révisions à jour',
+    meta: due ? `${parts} · ~${Math.max(2, Math.round(due / 6))} min` : 'Rien d’autre à revoir aujourd’hui',
+    path: '/revision', cta: 'Réviser', done: due === 0,
+  }];
+  const cur = parcours.current;
+  if (cur) {
+    const mod = parcours.modules.find(m => m.id === cur.moduleId);
+    steps.push({
+      id: 'lesson', ic: 'route',
+      title: `Leçon : ${cur.titleParts.fr}`, ar: cur.titleParts.ar,
+      meta: `Parcours · module ${mod.index + 1} · ${mod.doneCount}/${mod.lessons.length} leçons`,
+      path: `/parcours/lecon/${cur.id}`, cta: parcours.completed > 0 ? 'Continuer la leçon' : 'Commencer le parcours',
+    });
   }
-  const mod = p.modules.find(m => m.id === cur.moduleId);
-  const { ar, fr } = cur.titleParts;
-  const started = p.completed > 0;
-  return `
-    <section class="hero" style="--m-tint:${mod.tint.tint}">
-      <div class="hero__glyph" aria-hidden="true">${escapeHtml((ar || 'ع').replace(/[ً-ٰٟ]/g, '').trim().charAt(0) || 'ع')}</div>
-      <div class="hero__eyebrow">${icon('route')} ${started ? 'Continue ton parcours' : 'Commence ton parcours'} · Module ${mod.index + 1}</div>
-      ${ar ? `<div class="hero__ar" lang="ar">${escapeHtml(ar)}</div>` : ''}
-      <div class="hero__title">${escapeHtml(fr)}</div>
-      <div class="hero__sub">${escapeHtml(cur.objective || mod.description)}</div>
-      <div class="hero__progress">
-        ${progressBar(mod.pct, 'progress--thin')}
-        <span>${mod.doneCount}/${mod.lessons.length}</span>
-      </div>
-      <div class="hero__actions">
-        <button class="btn btn--gold btn--lg hero__cta" data-navigate="/parcours/lecon/${escapeHtml(cur.id)}">
-          ${icon('play')} ${started ? 'Continuer' : 'Commencer'}
-        </button>
-        <button class="hero__map" data-navigate="/parcours" aria-label="Voir tout le parcours">${icon('route')}</button>
-      </div>
-    </section>`;
+  if (reading) {
+    steps.push({
+      id: 'read', ic: 'reader',
+      title: `Lire : ${reading.passage.title}`,
+      meta: `Comprendre · ${{ ready_now: 'prêt à lire', syntax_to_discover: 'une construction à découvrir', prepare_first: 'séance guidée' }[reading.readiness.status]}`,
+      path: `/comprendre/${encodeURIComponent(reading.passage.id)}`, cta: 'Lire le texte',
+    });
+  }
+  if (quranNext) {
+    steps.push({
+      id: 'quran', ic: 'book-open',
+      title: `Mémoriser ${quranNext.s.name} · verset ${quranNext.v}`,
+      meta: memorized.size ? `Coran · ${memorized.size} verset${memorized.size > 1 ? 's' : ''} mémorisé${memorized.size > 1 ? 's' : ''}` : 'Coran · ton premier verset',
+      path: `/coran/${quranNext.s.id}/hifz`, cta: 'Mémoriser',
+    });
+  }
+  return steps;
 }
 
-// ── Objectif du jour + semaine ────────────────────────────────────
-function goalCard(xp, goal, stats) {
+function todayCard(steps, { xp, goal, stats, streak }) {
+  const current = steps.find(s => !s.done) || steps[0];
   const pct = Math.min(100, (xp / goal) * 100);
   const reached = xp >= goal;
   const week = last7Days(stats);
+  const hadActivity = week.some(d => d.xp > 0);
+  const date = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
   return `
-    <section class="goal card">
-      <div class="goal__ring">${ring(pct, { size: 64, stroke: 7, label: reached ? '✓' : `${Math.round(pct)}%`, color: reached ? 'var(--success)' : '' })}</div>
-      <div class="goal__body">
-        <div class="goal__title">${reached ? 'Objectif atteint !' : 'Objectif du jour'}</div>
-        <div class="goal__meta"><strong data-xp>0</strong> / ${goal} XP</div>
+    <section class="today">
+      <div class="today__head">
+        <div>
+          <div class="today__eyebrow">${icon('calendar')} Aujourd’hui · ${escapeHtml(date)}</div>
+          <div class="today__title">${reached ? 'Objectif atteint, bravo !' : 'Ton plan du jour'}</div>
+        </div>
+        <div class="today__ring" title="Objectif du jour">
+          ${ring(pct, { size: 58, stroke: 6, label: reached ? '✓' : `${Math.round(pct)}%`, color: reached ? 'var(--success)' : 'var(--gold)' })}
+          <span><strong data-xp>0</strong>/${goal} XP</span>
+        </div>
+      </div>
+
+      <ol class="today__steps">
+        ${steps.map(s => `
+          <li>
+            <button class="today-step pressable ${s.done ? 'is-done' : ''} ${s === current ? 'is-current' : ''}" data-navigate="${s.path}">
+              <span class="today-step__icon">${icon(s.done ? 'check' : s.ic)}</span>
+              <span class="today-step__body">
+                <span class="today-step__title">${escapeHtml(s.title)}</span>
+                <span class="today-step__meta">${escapeHtml(s.meta)}</span>
+              </span>
+              ${s.ar && s === current ? `<span class="today-step__ar" lang="ar">${escapeHtml(s.ar)}</span>` : `<span class="today-step__chev">${icon('chevron-right')}</span>`}
+            </button>
+          </li>`).join('')}
+      </ol>
+
+      <button class="btn btn--gold btn--lg btn--block today__cta" data-navigate="${current.path}">${icon('play')} ${escapeHtml(current.cta)}</button>
+
+      <div class="today__week">
         <div class="week" aria-label="Activité des 7 derniers jours">
           ${week.map(d => `
             <div class="week__day ${d.xp > 0 ? 'is-active' : ''} ${d.isToday ? 'is-today' : ''}" title="${d.key} · ${d.xp} XP">
@@ -137,77 +173,34 @@ function goalCard(xp, goal, stats) {
               <span class="week__label">${d.label}</span>
             </div>`).join('')}
         </div>
+        <p class="today__streak">${streak > 0
+          ? `🔥 Série de ${streak} jour${streak > 1 ? 's' : ''}${xp > 0 ? '' : ' · réponds à une question pour la prolonger'}`
+          : hadActivity ? 'Série interrompue hier : elle repart dès ta première réponse aujourd’hui.' : 'Une réponse par jour suffit à lancer ta série.'}</p>
       </div>
     </section>`;
 }
 
-function quranCard(index, memorized) {
-  const surahs = learningOrder(index.surahs);
-  const total = surahs.reduce((n, s) => n + s.verses, 0);
-  let next = null;
-  for (const s of surahs) {
-    for (let v = 1; v <= s.verses; v++) {
-      if (!memorized.has(`${s.id}:${v}`)) { next = { s, v }; break; }
-    }
-    if (next) break;
+function nextVerse(index, memorized) {
+  for (const s of learningOrder(index.surahs)) {
+    for (let v = 1; v <= s.verses; v++) if (!memorized.has(`${s.id}:${v}`)) return { s, v };
   }
-  return `
-    <button class="quran-card pressable" data-navigate="${next ? `/coran/${next.s.id}/hifz` : '/coran'}">
-      <span class="quran-card__ar" lang="ar">${next ? next.s.nameAr : 'القُرْآن'}</span>
-      <span class="quran-card__body">
-        <span class="quran-card__eyebrow">${icon('book-open')} Coran · ${memorized.size}/${total} versets</span>
-        <span class="quran-card__title">${next ? `${next.s.name} · verset ${next.v}` : 'Tout est mémorisé'}</span>
-        <span class="quran-card__meta">Chaque verset mémorisé ajoute ses mots à tes révisions</span>
-      </span>
-      <span class="ai-card__go">${icon('arrow-right')}</span>
-    </button>`;
+  return null;
 }
 
-function reviewCard(words, phrases, verses = 0) {
-  const total = words + phrases + verses;
-  const parts = [words ? `${words} mot${words > 1 ? 's' : ''}` : '', phrases ? `${phrases} phrase${phrases > 1 ? 's' : ''}` : '', verses ? `${verses} verset${verses > 1 ? 's' : ''}` : ''].filter(Boolean).join(' · ');
+function shortcut(t, { memorized, reading }) {
+  const meta = {
+    coran: memorized.size ? `${memorized.size} verset${memorized.size > 1 ? 's' : ''}` : 'Mémoriser',
+    comprendre: reading ? 'Lecture guidée' : 'Textes',
+    karim: 'Tuteur IA',
+    dialogues: 'Situations',
+    alphabet: '28 lettres',
+    racines: 'Familles',
+  }[t.id];
   return `
-    <button class="row review-row pressable" data-navigate="/revision">
-      <span class="row__icon">${icon('refresh-cw')}</span>
-      <span class="row__body">
-        <span class="row__title">${total} élément${total > 1 ? 's' : ''} à réviser</span>
-        <span class="row__meta">${parts} · quelques minutes suffisent</span>
-      </span>
-      <span class="row__chev">${icon('chevron-right')}</span>
-    </button>`;
-}
-
-function readCard() {
-  return `
-    <button class="ai-card read-card pressable" data-navigate="/comprendre">
-      <span class="ai-card__avatar" lang="ar">فـ<span class="ai-card__spark">${icon('lightbulb')}</span></span>
-      <span class="ai-card__body">
-        <span class="ai-card__title">Comprendre un texte</span>
-        <span class="ai-card__meta">Lecture guidée · l’app repère ce qui te bloque</span>
-      </span>
-      <span class="ai-card__go">${icon('arrow-right')}</span>
-    </button>`;
-}
-
-function tutorCard() {
-  return `
-    <button class="ai-card pressable" data-navigate="/tuteur">
-      <span class="ai-card__avatar">ك<span class="ai-card__spark">${icon('sparkles')}</span></span>
-      <span class="ai-card__body">
-        <span class="ai-card__title">Discute avec Karim</span>
-        <span class="ai-card__meta">Tuteur IA · conversation libre, corrections</span>
-      </span>
-      <span class="ai-card__go">${icon('arrow-right')}</span>
-    </button>`;
-}
-
-function exploreTile(t) {
-  return `
-    <button class="bento__tile bento__tile--${t.tone} pressable" data-navigate="${t.path}">
-      <span class="bento__glyph" aria-hidden="true">${t.glyph}</span>
-      <span class="bento__icon">${icon(t.ic)}</span>
-      <span class="bento__title">${t.title}</span>
-      <span class="bento__desc">${t.desc}</span>
+    <button class="shortcut shortcut--${t.tone} pressable" data-navigate="${t.path}">
+      <span class="shortcut__icon">${icon(t.ic)}</span>
+      <span class="shortcut__title">${t.title}</span>
+      <span class="shortcut__meta">${meta}</span>
     </button>`;
 }
 

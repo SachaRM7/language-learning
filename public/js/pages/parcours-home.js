@@ -22,6 +22,14 @@ export async function renderParcoursHome() {
     <main class="page-content page-content--nav">
       <div class="stagger">
         ${overviewCard(state, due.length)}
+        <button class="row pressable cp-entry" data-navigate="/comprendre">
+          <span class="row__icon">${icon('reader')}</span>
+          <span class="row__body">
+            <span class="row__title">Lire un texte</span>
+            <span class="row__meta">Comprendre · dialogues et récits annotés</span>
+          </span>
+          <span class="row__chev">${icon('chevron-right')}</span>
+        </button>
         ${state.modules.map(moduleBlock).join('')}
         ${comingSoon()}
       </div>

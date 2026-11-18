@@ -25,7 +25,6 @@ export async function renderCoranHome() {
     dueVerses(),
   ]);
 
-  const totalVerses = surahs.reduce((n, s) => n + s.verses, 0);
   const allLemmas = new Set(surahs.flatMap(s => Object.keys(s.lemmaCounts)));
   const knownInScope = [...allLemmas].filter(l => known.has(l)).length;
   let words = 0, ok = 0;
@@ -55,8 +54,8 @@ export async function renderCoranHome() {
             <div class="qh-hero__title">Mā shāʾ Allāh, tout est mémorisé !</div>
             <div class="qh-hero__sub">Entretiens tes versets avec la murājaʿa.</div>`}
           <div class="qh-stats">
-            <div><b>${memorized.size}</b><span>/ ${totalVerses} versets</span></div>
-            <div><b>${knownInScope}</b><span>/ ${allLemmas.size} mots</span></div>
+            <div><b>${memorized.size}</b><span>verset${memorized.size > 1 ? 's' : ''} mémorisé${memorized.size > 1 ? 's' : ''}</span></div>
+            <div><b>${knownInScope}</b><span>mot${knownInScope > 1 ? 's' : ''} connu${knownInScope > 1 ? 's' : ''}</span></div>
             <div><b>${globalComp}%</b><span>mots reconnus</span></div>
           </div>
         </section>
@@ -70,6 +69,16 @@ export async function renderCoranHome() {
             </span>
             <span class="row__chev">${icon('chevron-right')}</span>
           </button>` : ''}
+
+
+        <button class="row pressable cp-entry" data-navigate="/comprendre">
+          <span class="row__icon">${icon('reader')}</span>
+          <span class="row__body">
+            <span class="row__title">Comprendre un extrait</span>
+            <span class="row__meta">Lecture guidée de Quraysh et Al-Ikhlāṣ, mot par mot</span>
+          </span>
+          <span class="row__chev">${icon('chevron-right')}</span>
+        </button>
 
         <section class="section">
           <div class="section__head">

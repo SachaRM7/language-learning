@@ -9,6 +9,7 @@ import { store } from '../store.js';
 import { ensureAllDecks } from '../decks.js';
 import { knownLemmas } from '../quran.js';
 import { computeMasteryProfile } from './mastery.js';
+import { evaluatePassageReadiness } from './scheduler.js';
 
 let _library = null;
 
@@ -89,3 +90,15 @@ export function levelOf(score, count = 1) {
 
 /** Racine sans tirets (format du lexique coranique) → affichage « ك-ت-ب ». */
 export const rootDisplay = r => (r ? [...r].join('-') : '');
+
+/** Prochain texte conseillé : pas encore relu, le plus « à portée » d'abord. */
+export function suggestPassage(prof) {
+  const { passages, catalog } = prof.library;
+  const done = new Set(prof.stored.filter(e => e.sourceModule === 'reread' || e.sourceModule === 'transfer').map(e => e.passageId));
+  const order = { syntax_to_discover: 0, ready_now: 1, prepare_first: 2 };
+  const ranked = passages
+    .filter(p => !done.has(p.id))
+    .map(p => ({ passage: p, readiness: evaluatePassageReadiness(p, prof.mastery, catalog) }))
+    .sort((a, b) => order[a.readiness.status] - order[b.readiness.status]);
+  return ranked[0] || { passage: passages[0], readiness: evaluatePassageReadiness(passages[0], prof.mastery, catalog) };
+}

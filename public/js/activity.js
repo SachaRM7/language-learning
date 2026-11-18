@@ -84,7 +84,7 @@ export function todayXP(stats) {
 /** 7 derniers jours (du plus ancien à aujourd'hui) : [{key, label, xp, isToday}] */
 export function last7Days(stats) {
   const today = dayKey();
-  const labels = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
+  const labels = ['Di', 'Lu', 'Ma', 'Me', 'Je', 'Ve', 'Sa'];
   return Array.from({ length: 7 }, (_, i) => {
     const key = addDays(today, i - 6);
     const d = new Date(key + 'T12:00:00');

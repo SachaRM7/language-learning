@@ -294,3 +294,9 @@ button.cp-tok:hover { background: var(--surface-2); }
 .cp-session, .cp-body { min-width: 0; max-width: 100%; }
 .cp-text, .cp-drill__ar, .cp-intro__ar { overflow-wrap: anywhere; }
 @media (min-width: 1024px) { .cp-session { max-width: 760px; } }
+
+/* Accès « Comprendre » depuis le Coran et le Parcours */
+.cp-entry .row__icon { background: var(--primary-soft); color: var(--primary); }
+.coran-home .cp-entry { margin-bottom: var(--sp-2); }
+@media (min-width: 1024px) { .coran-home .cp-entry { grid-column: 2; } }
+@media (min-width: 1024px) { .pc-overview ~ .cp-entry { grid-column: 2; } }
