@@ -14,6 +14,7 @@ const NAV_ITEMS = [
 ];
 
 const EXPLORE = [
+  { path: '/comprendre',    icon: 'lightbulb', label: 'Comprendre' },
   { path: '/tuteur',        icon: 'sparkles',  label: 'Karim IA' },
   { path: '/conversations', icon: 'messages',  label: 'Dialogues' },
   { path: '/alphabet',      icon: 'languages', label: 'Alphabet' },

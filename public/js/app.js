@@ -10,7 +10,7 @@ import { store } from './store.js';
 import { route, startRouter, navigate, getCurrentRoute } from './router.js';
 
 // Pages « de consultation » rafraîchies quand des données arrivent d'un autre appareil
-const BROWSE_ROUTES = ['/home', '/parcours', '/mots', '/conversations', '/revision', '/profil', '/coran'];
+const BROWSE_ROUTES = ['/home', '/parcours', '/mots', '/conversations', '/revision', '/profil', '/coran', '/comprendre'];
 import { renderHome } from './pages/home.js';
 import { renderWordsHome, renderWordsTheme } from './pages/words-home.js';
 import { renderWordsDeck, renderWordsDeckLesson } from './pages/words-deck.js';
@@ -36,6 +36,7 @@ import { renderCoranHome } from './pages/coran-home.js';
 import { renderCoranSurah } from './pages/coran-surah.js';
 import { renderCoranHifz } from './pages/coran-hifz.js';
 import { renderCoranReview } from './pages/coran-review.js';
+import { renderComprendre, renderComprendreSession } from './pages/comprendre.js';
 import { stopAudio } from './components/quran-audio.js';
 
 async function init() {
@@ -91,6 +92,10 @@ async function init() {
 
   // Tuteur IA (Claude, via le Worker)
   route('/tuteur', renderTutor);
+
+  // Comprendre : lecture guidée par le moteur pédagogique
+  route('/comprendre', renderComprendre);
+  route('/comprendre/:passageId', renderComprendreSession);
 
   // Phase 2 — Mode Mots
   route('/mots', renderWordsHome);

@@ -59,7 +59,7 @@ function render() {
         <div class="qs-hero__meta">${place} · ${surah.verses.length} versets</div>
         <div class="qs-hero__rings">
           <div class="qs-ring">${ring((mem / surah.verses.length) * 100, { size: 58, stroke: 6, label: `${mem}/${surah.verses.length}` })}<span>mémorisés</span></div>
-          <div class="qs-ring qs-ring--gold">${ring(comp, { size: 58, stroke: 6, label: `${comp}%`, color: 'var(--gold)' })}<span>des mots compris</span></div>
+          <div class="qs-ring qs-ring--gold">${ring(comp, { size: 58, stroke: 6, label: `${comp}%`, color: 'var(--gold)' })}<span>des mots reconnus</span></div>
         </div>
         <div class="qs-hero__actions">
           <button class="btn btn--primary btn--lg" data-navigate="/coran/${surah.id}/hifz">${icon('play')} ${mem === surah.verses.length ? 'Revoir' : mem ? 'Continuer' : 'Mémoriser'}</button>

@@ -64,6 +64,7 @@ export async function renderHome() {
         ${dueTotal > 0 ? reviewCard(dueWords.length, duePhrases.length, dueV.length) : ''}
         ${quranIndex ? quranCard(quranIndex, memorized) : ''}
         ${tutorCard()}
+        ${readCard()}
         <section class="section">
           <div class="section__head"><h2 class="section__title">Explorer</h2></div>
           <div class="bento">
@@ -173,6 +174,18 @@ function reviewCard(words, phrases, verses = 0) {
         <span class="row__meta">${parts} · quelques minutes suffisent</span>
       </span>
       <span class="row__chev">${icon('chevron-right')}</span>
+    </button>`;
+}
+
+function readCard() {
+  return `
+    <button class="ai-card read-card pressable" data-navigate="/comprendre">
+      <span class="ai-card__avatar" lang="ar">فـ<span class="ai-card__spark">${icon('lightbulb')}</span></span>
+      <span class="ai-card__body">
+        <span class="ai-card__title">Comprendre un texte</span>
+        <span class="ai-card__meta">Lecture guidée · l’app repère ce qui te bloque</span>
+      </span>
+      <span class="ai-card__go">${icon('arrow-right')}</span>
     </button>`;
 }
 

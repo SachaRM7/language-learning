@@ -57,7 +57,7 @@ export async function renderCoranHome() {
           <div class="qh-stats">
             <div><b>${memorized.size}</b><span>/ ${totalVerses} versets</span></div>
             <div><b>${knownInScope}</b><span>/ ${allLemmas.size} mots</span></div>
-            <div><b>${globalComp}%</b><span>compris</span></div>
+            <div><b>${globalComp}%</b><span>mots reconnus</span></div>
           </div>
         </section>
 
@@ -74,7 +74,7 @@ export async function renderCoranHome() {
         <section class="section">
           <div class="section__head">
             <h2 class="section__title">Sourates</h2>
-            <span class="qh-legend"><i class="qh-dot qh-dot--mem"></i> mémorisé <i class="qh-dot qh-dot--comp"></i> compris</span>
+            <span class="qh-legend"><i class="qh-dot qh-dot--mem"></i> mémorisé <i class="qh-dot qh-dot--comp"></i> mots reconnus</span>
           </div>
           <ol class="qh-list">
             ${surahs.map(meta => surahRow(meta, memorized, known)).join('')}
@@ -105,7 +105,7 @@ function surahRow(meta, memorized, known) {
             ${progressBar(memPct, 'progress--thin qh-bar--mem')}
             ${progressBar(comp, 'progress--thin progress--gold qh-bar--comp')}
           </span>
-          <span class="qh-row__meta">${meta.verses} versets · ${mem ? `${mem} mémorisé${mem > 1 ? 's' : ''} · ` : ''}${comp}% compris</span>
+          <span class="qh-row__meta">${meta.verses} versets · ${mem ? `${mem} mémorisé${mem > 1 ? 's' : ''} · ` : ''}${comp}% des mots reconnus</span>
         </span>
         <span class="qh-row__ar" lang="ar">${escapeHtml(meta.nameAr)}</span>
         ${memPct === 100 ? `<span class="qh-row__done">${icon('check')}</span>` : ''}

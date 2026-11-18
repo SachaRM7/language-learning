@@ -8,7 +8,7 @@ class Database {
 
   init() {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open('helloarabic', 2);
+      const request = indexedDB.open('helloarabic', 3);
 
       request.onupgradeneeded = (event) => {
         const db = event.target.result;
@@ -33,6 +33,10 @@ class Database {
         }
         if (!db.objectStoreNames.contains('lessonDecks')) {
           db.createObjectStore('lessonDecks', { keyPath: 'key' });
+        }
+        // v3 : journal de preuves du moteur de compréhension (+ corrections de l'utilisateur)
+        if (!db.objectStoreNames.contains('evidence')) {
+          db.createObjectStore('evidence', { keyPath: 'id' });
         }
       };
 
@@ -205,7 +209,7 @@ class Database {
 
   /** Efface toute la progression (SRS, leçons, stats, favoris, decks de leçon). Les préférences sont conservées. */
   async resetProgress() {
-    const stores = ['srs', 'lessonProgress', 'stats', 'favorites', 'lessonDecks'];
+    const stores = ['srs', 'lessonProgress', 'stats', 'favorites', 'lessonDecks', 'evidence'];
     const keysByStore = Object.fromEntries(await Promise.all(stores.map(async n => [n, await this._getAllKeys(n)])));
     await new Promise((resolve, reject) => {
       const tx = this._db.transaction(stores, 'readwrite');
@@ -214,6 +218,27 @@ class Database {
       tx.onerror = () => reject(tx.error);
     });
     stores.forEach(n => keysByStore[n].forEach(k => this._notify(n, k, true)));
+  }
+
+  // ── Moteur de compréhension ──────────────────────────────
+
+  /** Toutes les preuves d'apprentissage (sans l'enregistrement des corrections). */
+  async getEvidence() {
+    const all = await this._getAll('evidence');
+    return all.filter(e => e.id !== OVERRIDES_ID);
+  }
+
+  async addEvidence(list) {
+    for (const ev of list) await this._put('evidence', ev);
+  }
+
+  /** Corrections manuelles : { notionId: { dimension: 'known' | 'needs_work' } } */
+  async getNotionOverrides() {
+    return (await this._get('evidence', OVERRIDES_ID))?.overrides || {};
+  }
+
+  async saveNotionOverrides(overrides) {
+    await this._put('evidence', { id: OVERRIDES_ID, overrides });
   }
 
   async deleteLessonDeck(courseId, lessonId) {
@@ -225,7 +250,9 @@ class Database {
 
 export const KEY_PATHS = {
   preferences: 'id', srs: 'key', favorites: 'courseId',
-  lessonProgress: 'key', stats: 'courseId', lessonDecks: 'key',
+  lessonProgress: 'key', stats: 'courseId', lessonDecks: 'key', evidence: 'id',
 };
+
+const OVERRIDES_ID = '__overrides';
 
 export const db = new Database();

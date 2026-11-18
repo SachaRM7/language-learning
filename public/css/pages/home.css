@@ -249,3 +249,8 @@
 .quran-card__title { font-weight: 800; letter-spacing: -0.01em; }
 .quran-card__meta { font-size: var(--fs-xs); opacity: 0.75; font-weight: 600; }
 .quran-card .ai-card__go { background: rgba(0, 0, 0, 0.08); }
+
+/* Carte « Comprendre » : même gabarit que Karim, teinte encre & safran */
+.read-card { background: var(--grad-night); box-shadow: 0 16px 32px -16px rgba(8, 40, 32, 0.65); }
+.read-card .ai-card__avatar { font-family: var(--font-arabic); }
+.read-card .ai-card__spark { color: var(--gold-ink); background: var(--gold-soft); }

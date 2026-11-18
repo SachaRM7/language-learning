@@ -7,7 +7,7 @@
 
 import { json, readJson, httpError } from './http.js';
 
-const STORES = new Set(['preferences', 'srs', 'favorites', 'lessonProgress', 'stats', 'lessonDecks']);
+const STORES = new Set(['preferences', 'srs', 'favorites', 'lessonProgress', 'stats', 'lessonDecks', 'evidence']);
 const MAX_CHANGES = 3000;
 const MAX_RECORD_BYTES = 200_000;
 const PULL_LIMIT = 10_000;
