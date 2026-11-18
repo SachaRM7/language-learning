@@ -62,8 +62,6 @@
     border: 0;
     border-right: 1px solid var(--line);
     border-radius: 0;
-    border-top: 0;
-    max-width: none;
     background: var(--bg-elev);
     box-shadow: none;
     -webkit-backdrop-filter: none;
@@ -96,7 +94,7 @@
     color: var(--ink-2);
     transition: background var(--dur-2) var(--ease-out), color var(--dur-2);
   }
-  .bottom-nav > .bottom-nav__item { max-width: none; }
+  body:has(.bottom-nav)::after { display: none; }
   .bottom-nav__item:hover { background: var(--surface-2); color: var(--ink); }
   .bottom-nav__icon { width: 24px; height: 24px; background: none !important; border-radius: 0; }
   .bottom-nav__icon .ico { width: 20px; height: 20px; }

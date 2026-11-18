@@ -119,25 +119,40 @@
 
 /* ── Navigation basse : pilule flottante en verre ── */
 .bottom-nav {
-  /* Barre ancrée au bord bas de l'écran (zone du geste d'accueil comprise), comme une barre d'onglets iOS */
+  /* Pilule flottante arrondie… */
   position: fixed;
   z-index: var(--z-nav);
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: calc(var(--nav-h) + var(--safe-b));
+  left: 50%;
+  bottom: calc(var(--sp-3) + var(--safe-b));
+  transform: translateX(-50%);
+  width: min(calc(100% - var(--sp-6)), calc(var(--max-w) - var(--sp-6)));
+  height: var(--nav-h);
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding: 0 max(var(--sp-2), env(safe-area-inset-right, 0px)) var(--safe-b) max(var(--sp-2), env(safe-area-inset-left, 0px));
+  padding: 0 var(--sp-2);
   background: var(--glass);
   -webkit-backdrop-filter: saturate(1.8) blur(22px);
   backdrop-filter: saturate(1.8) blur(22px);
-  border-top: 1px solid var(--line);
-  box-shadow: 0 -10px 30px -22px rgba(28, 22, 14, 0.35);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  box-shadow: var(--sh-3);
   view-transition-name: bottom-nav;
 }
-.bottom-nav > .bottom-nav__item { max-width: 120px; }
+/* …posée sur un socle opaque : rien ne défile sous la pilule ni entre elle et le bord de l'écran.
+   Le haut du socle est un fondu, pour que le contenu disparaisse en douceur. */
+body:has(.bottom-nav)::after {
+  content: '';
+  position: fixed;
+  z-index: calc(var(--z-nav) - 1);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(var(--nav-h) + var(--sp-3) * 3 + var(--safe-b));
+  background: linear-gradient(to bottom, transparent 0, var(--bg) calc(var(--sp-3) * 1.6));
+  pointer-events: none;
+}
+.bottom-nav__item { max-width: 120px; }
 .bottom-nav__item {
   position: relative;
   flex: 1;
@@ -200,3 +215,8 @@
 }
 
 [data-navigate], [data-lesson-id], [data-course-id] { cursor: pointer; }
+
+/* Mobile : pas de halo en bas de page, pour que le socle de la barre se fonde parfaitement dans le fond */
+@media (max-width: 1023px) {
+  body::before { background: radial-gradient(60rem 40rem at 110% -10%, color-mix(in srgb, var(--primary) 9%, transparent), transparent 60%); }
+}
