@@ -14,6 +14,7 @@ import { renderHeader } from '../components/header.js';
 import { renderBottomNav } from '../components/bottom-nav.js';
 import { showModal, hideModal } from '../components/modal.js';
 import { openRootSheet, openWordSheet } from '../components/quran-sheets.js';
+import { kazimirskiButton, bindKazimirskiButtons } from '../components/dictionary.js';
 import { playUrl, playSequence, stopAudio } from '../components/quran-audio.js';
 import { escapeHtml } from '../utils.js';
 import { icon } from '../icons.js';
@@ -184,7 +185,8 @@ async function openNotionSheet(notionId, onChange = null) {
         ${n.root ? `
           <button class="cp-root-link pressable" id="cp-root" ${rootOk ? '' : 'disabled'}>
             ${icon('sprout')} Racine <b lang="ar">${esc(rootDisplay(n.root))}</b>${rootOk ? ` <span>· voir la famille dans le Coran</span>${icon('chevron-right')}` : ''}
-          </button>` : ''}
+          </button>
+          ${kazimirskiButton(n.root)}` : ''}
         ${examples.length ? `
           <div class="cp-sheet__ex">
             ${examples.map(d => `<div><p lang="ar" dir="rtl">${esc(d.arabicVocalized)}</p><span>${esc(d.frenchMeaning)}</span></div>`).join('')}
@@ -212,6 +214,7 @@ async function openNotionSheet(notionId, onChange = null) {
     </div>`);
   const overlay = document.getElementById('modal-overlay');
   overlay.addEventListener('click', e => { if (e.target === overlay) hideModal(); });
+  bindKazimirskiButtons(overlay);
   document.getElementById('cp-root')?.addEventListener('click', () => { hideModal(); setTimeout(() => openRootSheet(n.root), 220); });
   overlay.querySelectorAll('[data-ov]').forEach(b => b.addEventListener('click', async () => {
     await setOverride(notionId, main, b.dataset.ov || null);

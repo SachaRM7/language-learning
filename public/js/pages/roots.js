@@ -9,6 +9,7 @@ import { icon } from '../icons.js';
 import { haptic } from '../ui.js';
 import { ensureAllDecks } from '../decks.js';
 import { openRootSheet } from '../components/quran-sheets.js';
+import { kazimirskiButton, bindKazimirskiButtons } from '../components/dictionary.js';
 import { loadQuranIndex, loadSurah, loadLexicon, knownLemmas, lemmaMeaning } from '../quran.js';
 
 const $app = () => document.getElementById('app');
@@ -114,6 +115,7 @@ function _rootCard(root) {
             ${root.derivatives.map(d => _derivative(d, root.letters)).join('')}
           </ul>
           ${_quranCount(root.letters) ? `<button class="btn btn--tonal btn--block root-card__quran" data-qroot="${escapeHtml(root.letters.join(''))}">📖 Cette racine dans le Coran</button>` : ''}
+          ${kazimirskiButton(root.letters.join(''))}
         </div>
       </div>
     </article>`;
@@ -191,6 +193,7 @@ function _toggle(card) {
 }
 
 function _bindEvents() {
+  bindKazimirskiButtons($app());
   $app().querySelectorAll('[data-rtab]').forEach(b => b.addEventListener('click', () => {
     _state.tab = b.dataset.rtab;
     $app().querySelectorAll('[data-rtab]').forEach(x => x.classList.toggle('is-active', x === b));

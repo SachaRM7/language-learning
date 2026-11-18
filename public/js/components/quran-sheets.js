@@ -11,6 +11,7 @@ import { createSRSEntry } from '../srs.js';
 import { showModal, hideModal } from './modal.js';
 import { loadLexicon, lemmaMeaning, lemmaCardId, knownLemmas, translitAr, AUDIO_WORD, cachedFr } from '../quran.js';
 import { playUrl } from './quran-audio.js';
+import { kazimirskiButton, bindKazimirskiButtons } from './dictionary.js';
 
 const courseId = () => store.get('currentCourse')?.id || 'arabic';
 const rootLetters = root => [...(root || '')];
@@ -130,8 +131,10 @@ export async function openRootSheet(root) {
         </div>
         <ul class="q-fam">${familyList(root, lexicon, known, null)}</ul>
         ${lemmas.length > 24 ? `<p class="q-sheet__more">+ ${lemmas.length - 24} autres mots, plus rares</p>` : ''}
+        ${kazimirskiButton(root)}
       </div>
     </div>`);
   const overlay = document.getElementById('modal-overlay');
   overlay.addEventListener('click', e => { if (e.target === overlay) hideModal(); });
+  bindKazimirskiButtons(overlay);
 }

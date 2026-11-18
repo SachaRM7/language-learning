@@ -566,3 +566,37 @@
 
 /* Confettis */
 .confetti-canvas { position: fixed; inset: 0; pointer-events: none; z-index: var(--z-toast); }
+
+/* ═════════ Dictionnaire Kazimirski (scans archive.org) ═════════ */
+.kz-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; margin-top: var(--sp-3);
+  min-height: 44px; padding: 0 var(--sp-4);
+  border-radius: var(--r-md);
+  border: 1.5px dashed var(--line-strong);
+  background: transparent;
+  font-size: var(--fs-sm); font-weight: 700; color: var(--ink-2);
+}
+.kz-btn .ico { width: 16px; height: 16px; color: var(--gold); }
+.kz-btn:hover { background: var(--surface-2); }
+.kz-sheet { display: flex; flex-direction: column; gap: var(--sp-3); max-height: 92dvh; }
+.kz-head { display: flex; align-items: center; gap: var(--sp-3); }
+.kz-head__title { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.kz-head__root { font-family: var(--font-arabic); font-size: var(--fs-ar-md); line-height: 1.4; }
+.kz-head__src { font-size: var(--fs-xs); color: var(--ink-3); }
+.kz-view {
+  position: relative; flex: 1; min-height: 50dvh; overflow: auto;
+  border-radius: var(--r-md); background: #F3EBDD; border: 1px solid var(--line);
+  -webkit-overflow-scrolling: touch;
+}
+.kz-img { display: block; width: 100%; height: auto; opacity: 0; transition: opacity var(--dur-2); }
+.kz-img.is-ready { opacity: 1; }
+.kz-view.is-zoomed .kz-img { width: 190%; max-width: none; }
+.kz-loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 8px; color: #8F857A; font-size: var(--fs-sm); }
+.kz-loading .ico { width: 18px; height: 18px; }
+.kz-bar { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
+.kz-note { font-size: var(--fs-xs); color: var(--ink-3); text-align: center; }
+.kz-note a { color: var(--primary); font-weight: 650; margin-left: 4px; }
+:root[data-theme="dark"] .kz-img { filter: brightness(0.82) contrast(1.05); }
+:root[data-theme="dark"] .kz-view { background: #1C1F21; }
+.kz-loading[hidden] { display: none; }
