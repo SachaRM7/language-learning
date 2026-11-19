@@ -8,11 +8,12 @@
 //   2. la tâche planifiée soumet le lot, puis relève les résultats quand il est terminé ;
 //   3. les résultats par page sont fusionnés par racine dans kz_root.
 
-import Anthropic from '@anthropic-ai/sdk';
+import Anthropic, { toFile } from '@anthropic-ai/sdk';
 import { json } from './http.js';
 
 const MODEL = 'claude-opus-5-5';
 const VOLUMES = { 1: 'dictionnairearab01bibeuoft', 2: 'dictionnairearab02bibeuoft' };
+const UPLOADS_PER_RUN = 10;  // images téléversées par passage (limite de sous-requêtes)
 const SUBMIT_PER_RUN = 1;   // lots soumis par passage (limite de calcul des tâches planifiées)
 
 function iiif(v, n, region) {
@@ -141,7 +142,13 @@ async function wordsFor(env, roots) {
   return words;
 }
 
-function defRequest(v, n, targets, words) {
+/** Source d'image : fichier déjà téléversé (API Files) ou URL IIIF. */
+const imageSource = (v, n, i, region, files) => {
+  const id = files?.get(`${v}:${n}:${i}`);
+  return id ? { type: 'file', file_id: id } : { type: 'url', url: iiif(v, n, region) };
+};
+
+function defRequest(v, n, targets, words, files = null) {
   const lines = targets.map(root => `• Racine ${[...root].join('-')} (${root}) : ${words.get(root).join(' ، ')}`);
   return {
     custom_id: `v${v}-n${n}`,
@@ -153,9 +160,9 @@ function defRequest(v, n, targets, words) {
       messages: [{
         role: 'user',
         content: [
-          ...REGIONS.flatMap(([region, label]) => [
+          ...REGIONS.flatMap(([region, label], i) => [
             { type: 'text', text: `Vue : ${label}` },
-            { type: 'image', source: { type: 'url', url: iiif(v, n, region) } },
+            { type: 'image', source: imageSource(v, n, i, region, files) },
           ]),
           { type: 'text', text: `Racines et mots à définir (volume ${v}) :\n${lines.join('\n')}\n\nPour root, recopie la racine écrite entre parenthèses ci-dessus.` },
         ],
@@ -204,14 +211,14 @@ function pageRequest(v, n, targets, byRoot) {
 }
 
 /** Requêtes d'un lot : pages [[volume, vue, [racines attendues]], …], cibles calculées hors ligne. */
-export async function buildRequests(env, pages, kind = 'full') {
+export async function buildRequests(env, pages, kind = 'full', files = null) {
   const roots = [...new Set(pages.flatMap(p => p[2] || []))];
   if (isDefs(kind)) {
     const words = await wordsFor(env, roots);
     return pages
       .map(([v, n, targets = []]) => ({ v, n, targets: targets.filter(r => words.get(r)?.length) }))
       .filter(p => p.targets.length)
-      .map(p => defRequest(p.v, p.n, p.targets, words));
+      .map(p => defRequest(p.v, p.n, p.targets, words, files));
   }
   const byRoot = await lemmasFor(env, roots);
   return pages
@@ -232,7 +239,12 @@ export async function processKazimirski(env) {
   const { results: queued } = await env.DB
     .prepare("SELECT id, kind, pages FROM kz_job WHERE status = 'queued' ORDER BY id LIMIT ?1").bind(SUBMIT_PER_RUN).all();
   for (const job of queued) {
-    const requests = await buildRequests(env, JSON.parse(job.pages), job.kind);
+    let files = null;
+    if (String(job.kind).endsWith('files')) {
+      files = await stageFiles(env, client, JSON.parse(job.pages));
+      if (!files) { report.staging = job.id; continue; } // images encore en cours de dépôt
+    }
+    const requests = await buildRequests(env, JSON.parse(job.pages), job.kind, files);
     if (!requests.length) {
       await env.DB.prepare("UPDATE kz_job SET status = 'ingested', updated_at = ?1 WHERE id = ?2").bind(Date.now(), job.id).run();
       continue;
@@ -253,6 +265,37 @@ export async function processKazimirski(env) {
   }
   if (!queued.length && !submitted.length) return { state: 'idle' };
   return report;
+}
+
+/**
+ * Dépose via l'API Files les vues des pages d'un lot (quelques-unes par passage).
+ * Renvoie la table « v:n:i → file_id » quand tout est prêt, sinon null.
+ */
+async function stageFiles(env, client, pages) {
+  const keys = pages.flatMap(([v, n]) => REGIONS.map((_, i) => [v, n, i]));
+  const files = new Map();
+  for (let k = 0; k < pages.length; k += 30) {
+    const part = pages.slice(k, k + 30);
+    const { results } = await env.DB
+      .prepare(`SELECT volume, view, region, file_id FROM kz_file WHERE ${part.map((_, i) => `(volume = ?${2 * i + 1} AND view = ?${2 * i + 2})`).join(' OR ')}`)
+      .bind(...part.flatMap(([v, n]) => [v, n])).all();
+    for (const r of results) files.set(`${r.volume}:${r.view}:${r.region}`, r.file_id);
+  }
+  const missing = keys.filter(([v, n, i]) => !files.has(`${v}:${n}:${i}`)).slice(0, UPLOADS_PER_RUN);
+  if (!missing.length) return files;
+  const stmt = env.DB.prepare('INSERT OR REPLACE INTO kz_file (volume, view, region, file_id, created_at) VALUES (?1, ?2, ?3, ?4, ?5)');
+  const writes = [];
+  for (const [v, n, i] of missing) {
+    const res = await fetch(iiif(v, n, REGIONS[i][0]));
+    if (!res.ok) throw new Error(`archive.org ${res.status} (vol. ${v}, vue ${n})`);
+    const meta = await client.files.upload({
+      file: await toFile(res, `kz-${v}-${n}-${i}.jpg`, { type: 'image/jpeg' }),
+      expires_in_seconds: 3 * 86400,
+    });
+    writes.push(stmt.bind(v, n, i, meta.id, Date.now()));
+  }
+  await env.DB.batch(writes);
+  return null;
 }
 
 async function ingest(env, client, job) {
@@ -286,7 +329,7 @@ async function ingest(env, client, job) {
   for (let k = 0; k < writes.length; k += 50) await env.DB.batch(writes.slice(k, k + 50));
   if (isDefs(job.kind)) await mergeDefs(env, pages); else await mergeRoots(env, pages);
   // Les pages en échec (image indisponible, surcharge…) repartent dans un nouveau lot, deux fois au plus
-  const next = { full: 'retry', pilot: 'retry', retry: 'retry2', defs: 'defs-retry', 'defs-pilot': 'defs-retry', 'defs-retry': 'defs-retry2' }[job.kind];
+  const next = { full: 'retry', pilot: 'retry', retry: 'retry2', defs: 'defs-retry', 'defs-pilot': 'defs-retry', 'defs-retry': 'defs-retry2', 'defs-files': 'defs-retry-files', 'defs-retry-files': 'defs-retry2-files' }[job.kind];
   if (retry.size && next) {
     const again = JSON.parse(job.pages).filter(([v, n]) => retry.has(`v${v}-n${n}`));
     if (again.length) {
