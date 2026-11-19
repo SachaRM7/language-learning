@@ -152,7 +152,7 @@ export async function processKazimirski(env) {
   }
 
   const { results: submitted } = await env.DB
-    .prepare("SELECT id, batch_id FROM kz_job WHERE status = 'submitted' ORDER BY id LIMIT 6").all();
+    .prepare("SELECT id, kind, pages, batch_id FROM kz_job WHERE status = 'submitted' ORDER BY id LIMIT 6").all();
   for (const job of submitted) {
     const batch = await client.messages.batches.retrieve(job.batch_id);
     if (batch.processing_status !== 'ended') { report.waiting++; continue; }
@@ -167,9 +167,16 @@ async function ingest(env, client, job) {
   const now = Date.now();
   let input = 0, output = 0, ok = 0, failed = 0;
   const pages = [];
+  const retry = new Set();
+  let firstError = '';
   for await (const item of await client.messages.batches.results(job.batch_id)) {
     const [, v, n] = item.custom_id.match(/^v(\d+)-n(\d+)$/) || [];
-    if (item.result.type !== 'succeeded') { failed++; continue; }
+    if (item.result.type !== 'succeeded') {
+      failed++;
+      retry.add(item.custom_id);
+      if (!firstError) firstError = `${item.result.type}: ${item.result.error?.error?.message || item.result.error?.message || JSON.stringify(item.result.error || {}).slice(0, 200)}`;
+      continue;
+    }
     const msg = item.result.message;
     input += (msg.usage.input_tokens || 0) + (msg.usage.cache_read_input_tokens || 0) + (msg.usage.cache_creation_input_tokens || 0);
     output += msg.usage.output_tokens || 0;
@@ -185,8 +192,17 @@ async function ingest(env, client, job) {
   const writes = pages.map(p => stmt.bind(p.v, p.n, job.id, p.text, now));
   for (let k = 0; k < writes.length; k += 50) await env.DB.batch(writes.slice(k, k + 50));
   await mergeRoots(env, pages);
+  // Les pages en échec (image indisponible, surcharge…) repartent dans un nouveau lot, deux fois au plus
+  const next = { full: 'retry', pilot: 'retry', retry: 'retry2' }[job.kind];
+  if (retry.size && next) {
+    const again = JSON.parse(job.pages).filter(([v, n]) => retry.has(`v${v}-n${n}`));
+    if (again.length) {
+      await env.DB.prepare("INSERT INTO kz_job (kind, status, pages, created_at, updated_at) VALUES (?1, 'queued', ?2, ?3, ?3)")
+        .bind(next, JSON.stringify(again), now).run();
+    }
+  }
   await env.DB.prepare("UPDATE kz_job SET status = 'ingested', input_tokens = ?1, output_tokens = ?2, error = ?3, updated_at = ?4 WHERE id = ?5")
-    .bind(input, output, failed ? `${failed} page(s) en échec` : null, now, job.id).run();
+    .bind(input, output, failed ? `${failed} page(s) en échec — ${firstError}`.slice(0, 500) : null, now, job.id).run();
   return { job: job.id, ok, failed, input, output };
 }
 
