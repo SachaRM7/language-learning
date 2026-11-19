@@ -13,7 +13,7 @@ import { json } from './http.js';
 
 const MODEL = 'claude-opus-5-5';
 const VOLUMES = { 1: 'dictionnairearab01bibeuoft', 2: 'dictionnairearab02bibeuoft' };
-const SUBMIT_PER_RUN = 4;   // lots soumis par passage de la tâche planifiée
+const SUBMIT_PER_RUN = 1;   // lots soumis par passage (limite de calcul des tâches planifiées)
 
 function iiif(v, n, region) {
   const ident = VOLUMES[v];
