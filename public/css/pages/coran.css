@@ -309,3 +309,159 @@
 .q-kz-extra ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .q-kz-extra li { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: 8px var(--sp-3); border-radius: var(--r-sm); background: var(--surface-2); font-size: var(--fs-sm); }
 .q-kz-extra li [lang="ar"] { font-family: var(--font-arabic); font-size: var(--fs-ar-sm); order: 2; }
+
+/* ═════════ Récitation synchronisée (lecteur de sourate) ═════════ */
+:root {
+  --tj-ghunna: #13844D;  --tj-ikhfa: #8240C9;   --tj-idgham: #0B7F86;  --tj-idghamx: #4859D6;
+  --tj-iqlab: #C02C79;   --tj-qalqala: #1F62CC; --tj-madd2: #B77507;   --tj-madd246: #D0620E;
+  --tj-madd45: #D23A2E;  --tj-madd6: #9A1239;   --tj-silent: #A39A8F;  --tj-mark: #B26B00;
+}
+:root[data-theme="dark"] {
+  --tj-ghunna: #5BD08E;  --tj-ikhfa: #C59AF5;   --tj-idgham: #45D3C9;  --tj-idghamx: #A9B3FF;
+  --tj-iqlab: #F57DB8;   --tj-qalqala: #6FA8FF; --tj-madd2: #F5C04E;   --tj-madd246: #FF9E52;
+  --tj-madd45: #FF7A6B;  --tj-madd6: #FF4D73;   --tj-silent: #7F776E;  --tj-mark: #F2C878;
+}
+.tj--ghunna { color: var(--tj-ghunna); }   .tj--ikhfa { color: var(--tj-ikhfa); }
+.tj--idgham { color: var(--tj-idgham); }   .tj--idghamx { color: var(--tj-idghamx); }
+.tj--iqlab { color: var(--tj-iqlab); }     .tj--qalqala { color: var(--tj-qalqala); }
+.tj--madd2 { color: var(--tj-madd2); }     .tj--madd246 { color: var(--tj-madd246); }
+.tj--madd45 { color: var(--tj-madd45); }   .tj--madd6 { color: var(--tj-madd6); }
+.tj--silent { color: var(--tj-silent); }
+.tj--mark { color: var(--tj-mark); background: color-mix(in srgb, var(--gold) 18%, transparent); border-radius: 6px; }
+
+.tj-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: var(--sp-2) 0 var(--sp-3); }
+.tj-legend__item { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-xs); font-weight: 600; color: var(--ink-2); }
+.tj-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.tj-dot--ghunna { background: var(--tj-ghunna); }   .tj-dot--ikhfa { background: var(--tj-ikhfa); }
+.tj-dot--idgham { background: var(--tj-idgham); }   .tj-dot--idghamx { background: var(--tj-idghamx); }
+.tj-dot--iqlab { background: var(--tj-iqlab); }     .tj-dot--qalqala { background: var(--tj-qalqala); }
+.tj-dot--madd2 { background: var(--tj-madd2); }     .tj-dot--madd246 { background: var(--tj-madd246); }
+.tj-dot--madd45 { background: var(--tj-madd45); }   .tj-dot--madd6 { background: var(--tj-madd6); }
+.tj-dot--silent { background: var(--tj-silent); }
+
+/* Couleurs de tajwid masquées quand l'option est coupée (les « mots connus » gardent leur teinte) */
+.qs-verses:not(.show-tajweed) .tj { color: inherit; }
+
+.qs-page { padding-bottom: calc(var(--nav-h) + var(--safe-b) + 170px); }
+.qs-verses .qv__ar { font-size: var(--qs-ar-size, 1.95rem); }
+.qw { position: relative; }
+.qw__ar { display: inline; }
+.qw__tr { display: none; }
+.show-translit .qw { display: inline-flex; flex-direction: column; align-items: center; vertical-align: top; }
+.show-translit .qw__tr {
+  display: block; direction: ltr;
+  font-family: var(--font-ui); font-size: var(--fs-2xs); font-weight: 600; line-height: 1.2;
+  color: var(--ink-3); margin-top: -0.1em; margin-bottom: 0.35em; white-space: nowrap;
+}
+.qv.is-fr .qv__fr { color: var(--ink); border-inline-start: 3px solid var(--gold); padding-inline-start: var(--sp-3); }
+.qv.in-loop:not(.is-playing) { border-style: dashed; border-color: color-mix(in srgb, var(--primary) 45%, var(--line)); }
+
+/* Mot récité : surligné, avec une barre qui suit sa durée */
+.qs-verses.is-reciting .qv.is-playing .qw:not(.is-done):not(.is-cur) { opacity: 0.45; }
+.qw.is-cur { background: var(--gold-soft); box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--gold) 55%, transparent); }
+:root[data-theme="dark"] .qw.is-cur { background: color-mix(in srgb, var(--gold) 24%, transparent); }
+.qw.is-cur::after {
+  content: ''; position: absolute; right: 4px; bottom: 0.22em; height: 2.5px; border-radius: 2px;
+  width: calc((100% - 8px) * var(--p, 0)); background: var(--gold);
+}
+.show-translit .qw.is-cur .qw__tr { color: var(--gold-ink); }
+:root[data-theme="dark"] .show-translit .qw.is-cur .qw__tr { color: var(--gold); }
+
+/* Masquer le texte : chaque mot apparaît quand il est récité */
+.qv__reveal { display: none; }
+.is-memorize .qv__reveal { display: grid; margin-left: auto; }
+.is-memorize .qv__reveal + .qv__audio { margin-left: 0; }
+.is-memorize .qv:not(.is-revealed) .qw:not(.is-done):not(.is-cur) > span { filter: blur(7px); }
+.is-memorize .qv:not(.is-revealed) .qw:not(.is-done):not(.is-cur) { opacity: 1 !important; }
+.is-memorize .qv.is-revealed .qv__reveal { color: var(--primary); }
+
+/* Barre de lecture : posée au-dessus de la navigation */
+.qp-bar {
+  position: fixed; z-index: var(--z-nav);
+  left: 50%; transform: translateX(-50%);
+  bottom: calc(var(--nav-h) + var(--sp-3) * 2 + var(--safe-b));
+  width: min(calc(100% - var(--sp-6)), calc(var(--max-w) - var(--sp-6)));
+  padding: 0 var(--sp-3) var(--sp-2);
+  background: var(--glass);
+  -webkit-backdrop-filter: saturate(1.8) blur(22px); backdrop-filter: saturate(1.8) blur(22px);
+  border: 1px solid var(--line); border-radius: var(--r-lg);
+  box-shadow: var(--sh-3);
+  overflow: hidden;
+}
+.qp-bar__track { height: 3px; margin: 0 calc(-1 * var(--sp-3)); background: var(--surface-3); }
+.qp-bar__fill { height: 100%; width: 0; background: var(--gold); }
+.qp-bar__row { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); padding-top: var(--sp-2); }
+.qp-btn { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; color: var(--ink); }
+.qp-btn:active { transform: scale(0.9); }
+.qp-btn .ico { width: 22px; height: 22px; }
+.qp-flip { transform: scaleX(-1); }
+.qp-play {
+  display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%;
+  background: var(--grad-primary); color: #fff; box-shadow: var(--sh-primary);
+  transition: transform var(--dur-1) var(--ease-out);
+}
+.qp-play .ico { width: 22px; height: 22px; }
+.qp-play:not(.is-playing) .ico { margin-left: 3px; }
+.qp-play:active { transform: scale(0.92); }
+.qp-chip {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  min-width: 58px; height: 34px; padding: 0 10px;
+  border-radius: var(--r-pill); background: var(--surface-2); color: var(--ink-2);
+  font-size: var(--fs-xs); font-weight: 800; font-variant-numeric: tabular-nums;
+}
+.qp-chip .ico { width: 14px; height: 14px; }
+.qp-bar__info {
+  display: flex; flex-direction: column; align-items: center; width: 100%;
+  padding-top: 2px; text-align: center;
+}
+.qp-bar__reciter { display: inline-flex; align-items: center; gap: 5px; font-size: var(--fs-xs); font-weight: 700; color: var(--ink-2); max-width: 100%; }
+.qp-bar__reciter .ico { width: 13px; height: 13px; color: var(--primary); flex-shrink: 0; }
+.qp-bar__reciter span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qp-bar__meta { font-size: var(--fs-2xs); font-weight: 600; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.qp-return {
+  position: fixed; z-index: var(--z-nav); left: 50%; transform: translateX(-50%);
+  bottom: calc(var(--nav-h) + var(--sp-3) * 2 + var(--safe-b) + 128px);
+  display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px;
+  border-radius: var(--r-pill); background: var(--ink); color: var(--bg);
+  font-size: var(--fs-xs); font-weight: 700; box-shadow: var(--sh-2);
+}
+.qp-return[hidden] { display: none; }
+.qp-return .ico { width: 14px; height: 14px; }
+.qp-up { transform: rotate(-90deg); }
+
+/* Réglages de la récitation */
+.qp-sheet { max-height: 88dvh; overflow-y: auto; }
+.qp-sheet__chips { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.qp-sheet__chips .chip { height: 34px; }
+.qp-sheet__sub { font-size: var(--fs-xs); font-weight: 700; color: var(--ink-3); margin: var(--sp-3) 0 var(--sp-2); }
+.qp-sheet__hint { font-size: var(--fs-xs); color: var(--ink-3); margin-top: var(--sp-2); }
+.qp-sheet__toggle small { display: block; font-size: var(--fs-xs); color: var(--ink-3); }
+.qp-sheet__credits { font-size: var(--fs-2xs); color: var(--ink-3); text-align: center; margin-top: var(--sp-4); }
+.qp-font { font-family: var(--font-arabic); min-width: 44px; justify-content: center; }
+.qp-reciters { display: flex; flex-direction: column; gap: 6px; }
+.qp-reciter {
+  position: relative; display: flex; flex-direction: column; align-items: flex-start;
+  width: 100%; padding: 10px 40px 10px 14px; text-align: start;
+  border-radius: var(--r-sm); background: var(--surface); border: 1px solid var(--line);
+}
+.qp-reciter.is-active { border-color: var(--primary); background: var(--primary-soft); }
+.qp-reciter__name { font-weight: 700; font-size: var(--fs-sm); }
+.qp-reciter__style { font-size: var(--fs-xs); color: var(--ink-3); }
+.qp-reciter.is-active .qp-reciter__style { color: var(--primary-ink); }
+:root[data-theme="dark"] .qp-reciter.is-active .qp-reciter__style { color: var(--primary); }
+.qp-reciter__check { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--primary); }
+.qp-loop { display: flex; flex-wrap: wrap; gap: var(--sp-3); font-size: var(--fs-sm); color: var(--ink-2); font-weight: 600; }
+.qp-loop label { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.qp-loop select { height: 38px; padding: 0 10px; border-radius: var(--r-xs); border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); font: inherit; }
+.qp-loop__actions { margin-top: var(--sp-4); }
+.q-sheet__playfrom { display: flex; margin: var(--sp-3) auto 0; }
+
+@media (min-width: 1024px) {
+  .qs-page { padding-bottom: 200px; }
+  .qp-bar, .qp-return { left: calc(var(--sidebar-w) + (100% - var(--sidebar-w)) / 2); }
+  .qp-bar { bottom: var(--sp-5); width: min(640px, calc(100% - var(--sidebar-w) - var(--sp-8))); }
+  .qp-return { bottom: calc(var(--sp-5) + 128px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .qw, .qp-play { transition: none; }
+}

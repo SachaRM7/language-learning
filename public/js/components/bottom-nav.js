@@ -15,6 +15,7 @@ const NAV_ITEMS = [
 
 const EXPLORE = [
   { path: '/comprendre',    icon: 'reader',    label: 'Comprendre' },
+  { path: '/tajwid',        icon: 'mic',       label: 'Tajwid' },
   { path: '/tuteur',        icon: 'sparkles',  label: 'Karim IA' },
   { path: '/conversations', icon: 'messages',  label: 'Dialogues' },
   { path: '/alphabet',      icon: 'languages', label: 'Alphabet' },

@@ -1,0 +1,98 @@
+/* css/pages/tajwid.css — Parcours Tajwid (le chemin réutilise parcours.css, les couleurs de règles coran.css) */
+
+.tajwid-home > .stagger > .pc-module:first-of-type { margin-top: var(--sp-2); }
+.tj-overview .pc-overview__review + .pc-overview__review { margin-top: var(--sp-2); }
+.tj-overview__reader .pc-overview__review-icon { background: var(--gold-soft); color: var(--gold-ink); }
+:root[data-theme="dark"] .tj-overview__reader .pc-overview__review-icon { color: var(--gold); }
+.tj-unlock {
+  display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0 auto var(--sp-6);
+  font-size: var(--fs-sm); font-weight: 600; color: var(--ink-3); text-decoration: underline; text-underline-offset: 3px;
+}
+.tj-unlock .ico { width: 14px; height: 14px; }
+.tj-preview__ar { font-family: var(--font-quran); }
+
+/* ═════════ Leçon ═════════ */
+.tj-lesson { padding-bottom: calc(var(--safe-b) + var(--sp-12)); }
+.tj-hero {
+  position: relative; overflow: hidden; isolation: isolate;
+  text-align: center; padding: var(--sp-6) var(--sp-5);
+  border-radius: var(--r-xl); background: var(--m-grad); color: #fff;
+  box-shadow: var(--sh-3); margin-bottom: var(--sp-6);
+}
+.tj-hero__eyebrow { font-size: var(--fs-xs); font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.9; }
+.tj-hero__ar { font-family: var(--font-quran); font-size: 2.5rem; line-height: 1.8; margin: var(--sp-1) 0 var(--sp-3); }
+.tj-hero__title { font-size: var(--fs-xl); font-weight: 800; letter-spacing: -0.02em; }
+.tj-hero__sub { font-size: var(--fs-sm); opacity: 0.85; margin-top: 2px; }
+.tj-hero__stars { display: flex; justify-content: center; gap: 4px; margin-top: var(--sp-3); }
+.tj-hero__stars span { color: rgba(255, 255, 255, 0.35); }
+.tj-hero__stars span.on { color: #FFD66B; }
+.tj-hero__stars .ico { width: 18px; height: 18px; fill: currentColor; stroke: none; }
+
+.tj-blocks { display: flex; flex-direction: column; gap: var(--sp-4); }
+.tj-p { line-height: 1.7; color: var(--ink-2); }
+.tj-p strong, .tj-key strong, .tj-tip strong, .tj-table strong, .tj-quiz__q strong { color: var(--ink); }
+.tj-inline-ar { font-family: var(--font-quran); font-size: 1.22em; line-height: 1.4; unicode-bidi: isolate; }
+
+.tj-tip {
+  display: flex; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md); background: var(--gold-soft); color: var(--ink);
+  font-size: var(--fs-sm); line-height: 1.6;
+}
+:root[data-theme="dark"] .tj-tip { background: color-mix(in srgb, var(--gold) 16%, var(--surface)); }
+.tj-tip > .ico { width: 20px; height: 20px; flex-shrink: 0; color: var(--gold); margin-top: 1px; }
+
+.tj-key { display: flex; flex-direction: column; gap: var(--sp-2); }
+.tj-key > .card { padding: var(--sp-3) var(--sp-4); }
+.tj-key dt { font-weight: 800; }
+.tj-key dd { margin: 2px 0 0; font-size: var(--fs-sm); line-height: 1.6; color: var(--ink-2); }
+
+.tj-letters { padding: var(--sp-3) var(--sp-4); }
+.tj-letters__label { font-size: var(--fs-2xs); font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); }
+.tj-letters__row { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-2); }
+.tj-letters__row span {
+  display: grid; place-items: center; min-width: 46px; height: 46px; border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--m-tint) 14%, var(--surface)); color: var(--m-tint);
+  font-family: var(--font-arabic); font-size: 1.55rem; font-weight: 700; line-height: 1;
+}
+
+.tj-table-wrap { overflow-x: auto; border-radius: var(--r-md); border: 1px solid var(--line); background: var(--surface); }
+.tj-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+.tj-table th { text-align: start; padding: 10px 12px; background: var(--surface-2); color: var(--ink-3); font-size: var(--fs-2xs); font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
+.tj-table td { padding: 10px 12px; border-top: 1px solid var(--line); vertical-align: top; line-height: 1.5; }
+
+/* Exemple coranique */
+.tj-ex {
+  margin: 0; padding: var(--sp-4);
+  border-radius: var(--r-lg); background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--gold) 35%, var(--line)); box-shadow: var(--sh-1);
+  transition: box-shadow var(--dur-2), border-color var(--dur-2);
+}
+.tj-ex.is-playing { border-color: var(--gold); box-shadow: 0 0 0 4px var(--gold-soft); }
+.tj-ex__ar { font-family: var(--font-quran); font-size: 2.05rem; line-height: 2.2; text-align: center; direction: rtl; }
+.tj-ex--compact .tj-ex__ar { font-size: 2.3rem; }
+.tj-ex__w { display: inline-block; padding: 0 0.12em; border-radius: 8px; transition: background var(--dur-1); }
+.tj-ex__w.is-cur { background: var(--gold-soft); }
+:root[data-theme="dark"] .tj-ex__w.is-cur { background: color-mix(in srgb, var(--gold) 24%, transparent); }
+.tj-ex__tr { text-align: center; font-size: var(--fs-sm); font-style: italic; color: var(--ink-3); margin-top: var(--sp-1); }
+.tj-ex__foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin-top: var(--sp-3); }
+.tj-ex__play { gap: 6px; }
+.tj-ex__play .ico { width: 15px; height: 15px; }
+.tj-ex__rate { height: 34px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.tj-ex__ref { margin-left: auto; font-size: var(--fs-xs); font-weight: 600; color: var(--ink-3); }
+.tj-ex__ref:hover { color: var(--primary); text-decoration: underline; }
+.tj-ex__note { margin-top: var(--sp-3); font-size: var(--fs-sm); line-height: 1.6; color: var(--ink-2); }
+
+.tj-cta { margin-top: var(--sp-8); }
+
+/* ═════════ Quiz ═════════ */
+.tj-quiz { min-height: 100dvh; display: flex; flex-direction: column; }
+.tj-quiz .progress__fill { background: var(--m-grad, var(--grad-primary)); }
+.tj-quiz__body { flex: 1; display: flex; flex-direction: column; gap: var(--sp-4); padding: var(--sp-4) var(--sp-4) calc(var(--safe-b) + 220px); }
+.tj-quiz__q { font-size: var(--fs-xl); font-weight: 800; letter-spacing: -0.02em; line-height: 1.35; }
+.tj-quiz__opts { display: flex; flex-direction: column; gap: var(--sp-3); }
+.tj-quiz__opts .choice-btn { justify-content: flex-start; text-align: start; }
+
+.tj-result .pl-unlock { margin-top: var(--sp-2); }
+
+/* Entrée depuis l'accueil du Coran */
+.tj-entry { --tint: var(--violet-soft); --tint-ink: var(--violet); }

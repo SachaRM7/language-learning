@@ -40,9 +40,10 @@ function familyList(root, lexicon, known, current) {
 
 /**
  * Fiche d'un mot du Coran.
- * @param {{surahId:number, verse:object, j:number}} o
+ * @param {{surahId:number, verse:object, j:number, onPlayFrom?:Function}} o
+ *   onPlayFrom : si fourni, un bouton relance la récitation à partir de ce mot.
  */
-export async function openWordSheet({ surahId, verse, j }) {
+export async function openWordSheet({ surahId, verse, j, onPlayFrom = null }) {
   const w = verse.w[j];
   const [lexicon, known, srs] = await Promise.all([loadLexicon(), knownLemmas(courseId()), db.getSRS(courseId())]);
   const fr = cachedFr(surahId)?.words?.[`${verse.n}:${j}`];
@@ -62,6 +63,7 @@ export async function openWordSheet({ surahId, verse, j }) {
         <div class="q-sheet__mean">${escapeHtml(fr || (lm.lang === 'fr' ? lm.text : w.en))}${fr || lm.lang === 'fr' ? '' : ' <i class="q-en">EN</i>'}</div>
         <div class="q-sheet__ref">Sourate ${surahId}, verset ${verse.n}</div>
         ${lm.source === 'kazimirski' || lm.note ? `<p class="q-kz-note">${icon('book-open')} <span>${lm.source === 'kazimirski' ? `<b>${escapeHtml(lm.text)}</b> — sens corrigé d’après Kazimirski. ` : ''}${escapeHtml(lm.note || '')}</span></p>` : ''}
+        ${onPlayFrom ? `<button class="btn btn--tonal btn--sm q-sheet__playfrom" id="qs-playfrom">${icon('headphones')} Écouter la récitation à partir de ce mot</button>` : ''}
 
         <div class="q-sheet__grid">
           <div class="q-info">
@@ -103,6 +105,7 @@ export async function openWordSheet({ surahId, verse, j }) {
     if (w.a) playUrl(AUDIO_WORD + w.a, e.currentTarget);
   });
   document.getElementById('qs-root')?.addEventListener('click', () => { hideModal(); navigate(`/racines/${encodeURIComponent(w.r)}`); });
+  document.getElementById('qs-playfrom')?.addEventListener('click', () => { hideModal(); onPlayFrom(); });
   document.getElementById('qs-add')?.addEventListener('click', async e => {
     const id = lemmaCardId(w.l);
     await db.updateSRS(courseId(), id, createSRSEntry(courseId(), id));

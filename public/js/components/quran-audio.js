@@ -19,12 +19,14 @@ function setPlaying(btn, on) {
   btn?.classList.toggle('is-playing', on);
 }
 
-function _play(url, btn) {
+function _play(url, btn, rate = 1) {
   const a = audio();
   if (_finish) _finish(); // la lecture précédente se termine (sa promesse est résolue)
   return new Promise(resolve => {
     a.pause();
     a.src = url;
+    a.defaultPlaybackRate = rate;
+    a.playbackRate = rate;
     setPlaying(btn, true);
     const done = () => {
       if (_finish !== done) return;
@@ -41,9 +43,9 @@ function _play(url, btn) {
 }
 
 /** Joue une URL (annule toute lecture en cours) ; résolue à la fin ou à l'arrêt. */
-export function playUrl(url, btn = null) {
+export function playUrl(url, btn = null, { rate = 1 } = {}) {
   _token++;
-  return _play(url, btn);
+  return _play(url, btn, rate);
 }
 
 /** Joue une suite d'URL (ex. toute une sourate). onStep(i) avant chaque élément, onStep(-1) à la fin. */

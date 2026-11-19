@@ -9,7 +9,8 @@ import { progressBar, haptic, confetti } from '../ui.js';
 import { processAnswer } from '../srs.js';
 import { recordActivity } from '../activity.js';
 import { playUrl, stopAudio } from '../components/quran-audio.js';
-import { loadSurah, dueVerses, QURAN_COURSE, AUDIO_VERSE } from '../quran.js';
+import { loadSurah, dueVerses, QURAN_COURSE } from '../quran.js';
+import { preferredVerseUrl, getPlayerPrefs } from '../quran/player-prefs.js';
 
 const $app = () => document.getElementById('app');
 let R = null;
@@ -74,7 +75,10 @@ function renderItem() {
     </div>`;
   document.getElementById('mr-close').addEventListener('click', () => { stopAudio(); navigate('/coran'); });
   document.getElementById('mr-reveal')?.addEventListener('click', () => { R.revealed = true; haptic(); renderItem(); });
-  document.getElementById('mr-audio')?.addEventListener('click', e => playUrl(AUDIO_VERSE + verse.audio, e.currentTarget));
+  document.getElementById('mr-audio')?.addEventListener('click', async e => {
+    const btn = e.currentTarget;
+    playUrl(await preferredVerseUrl(surah.id, verse), btn, { rate: getPlayerPrefs().rate });
+  });
   document.getElementById('mr-ok')?.addEventListener('click', () => grade(true));
   document.getElementById('mr-ko')?.addEventListener('click', () => grade(false));
 }

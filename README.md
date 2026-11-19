@@ -64,6 +64,21 @@ Données : `node scripts/build-quran.mjs [sourates…]` (par défaut Al-Fatiha +
 Sources : texte et découpage mot à mot via l'API quran.com ; traduction Hamidullah ; racines et lemmes du
 Quranic Arabic Corpus v0.4 (GNU GPL, corpus.quran.com) via mustafa0x/quran-morphology ; récitation Alafasy.
 
+### Récitation et Tajwid
+
+- **Lecteur de sourate** (`components/quran-player.js`, inspiré de Rihla) : 12 récitateurs Quran.com avec
+  minutage mot à mot (surbrillance synchronisée du mot récité), vitesses 0,5× à 2×, écoute arabe / français /
+  arabe puis français, répétition de chaque verset, boucle de mémorisation (plage, passages, pause), couleurs de
+  tajwid, phonétique sous chaque mot, texte masqué qui se dévoile, écran verrouillé (Media Session). La fiche
+  d'un mot propose « Écouter la récitation à partir de ce mot ». Récitateur et vitesse s'appliquent aussi à la
+  mémorisation et à la murājaʿa. Préférences : `preferences.quranPlayer`. Données audio et tajwid demandées
+  à l'API publique Quran.com (`js/quran/recitation.js`), repli sur Alafasy sans minutage si elle est injoignable.
+- **Parcours Tajwid** (`#/tajwid`, `js/tajwid.js`) : 6 niveaux, 28 leçons présentées comme le Parcours guidé
+  (chemin, verrous, étoiles). Chaque leçon : explications, exemples coraniques récités par Al-Husary (Mu'allim,
+  seuls les mots concernés sont joués, la règle est colorée), quiz avec questions d'écoute ; 60 % pour valider.
+  Contenu : `scripts/tajwid_curriculum.py` → `python3 scripts/build-tajwid.py` → `public/data/tajwid/levels.json`
+  (le script vérifie sur Quran.com que chaque règle annoncée est bien présente dans son exemple).
+
 ## Scripts de données
 
 `scripts/*.py` régénèrent les decks (`public/data/decks`) et le vocabulaire des leçons.
