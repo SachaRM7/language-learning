@@ -10,7 +10,7 @@ import { store } from './store.js';
 import { route, startRouter, navigate, getCurrentRoute } from './router.js';
 
 // Pages « de consultation » rafraîchies quand des données arrivent d'un autre appareil
-const BROWSE_ROUTES = ['/home', '/parcours', '/mots', '/conversations', '/revision', '/profil', '/coran', '/comprendre'];
+const BROWSE_ROUTES = ['/home', '/parcours', '/mots', '/conversations', '/revision', '/profil', '/coran', '/comprendre', '/tajwid'];
 import { renderHome } from './pages/home.js';
 import { renderWordsHome, renderWordsTheme } from './pages/words-home.js';
 import { renderWordsDeck, renderWordsDeckLesson } from './pages/words-deck.js';
@@ -36,6 +36,8 @@ import { renderCoranHome } from './pages/coran-home.js';
 import { renderCoranSurah } from './pages/coran-surah.js';
 import { renderCoranHifz } from './pages/coran-hifz.js';
 import { renderCoranReview } from './pages/coran-review.js';
+import { renderTajwidHome } from './pages/tajwid-home.js';
+import { renderTajwidLesson } from './pages/tajwid-lesson.js';
 import { renderComprendre, renderComprendreSession } from './pages/comprendre.js';
 import { stopAudio, unlockRecitations } from './components/quran-audio.js';
 import { unlockAudio } from './audio.js';
@@ -91,8 +93,13 @@ async function init() {
   route('/coran', renderCoranHome);
   route('/coran/muraja', renderCoranReview);
   route('/coran/:n', renderCoranSurah);
+  route('/coran/:n/verset/:v', renderCoranSurah);
   route('/coran/:n/hifz', renderCoranHifz);
   route('/coran/:n/hifz/:v', renderCoranHifz);
+
+  // Tajwid : règles de récitation, niveau par niveau
+  route('/tajwid', renderTajwidHome);
+  route('/tajwid/lecon/:lessonId', renderTajwidLesson);
 
   // Tuteur IA (Claude, via le Worker)
   route('/tuteur', renderTutor);

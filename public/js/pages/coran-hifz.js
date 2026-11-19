@@ -9,7 +9,11 @@ import { progressBar, haptic, confetti, toast } from '../ui.js';
 import { recordActivity } from '../activity.js';
 import { openWordSheet } from '../components/quran-sheets.js';
 import { playUrl, stopAudio } from '../components/quran-audio.js';
-import { loadSurah, memorizedVerses, markVerseMemorized, AUDIO_VERSE } from '../quran.js';
+import { loadSurah, memorizedVerses, markVerseMemorized } from '../quran.js';
+import { preferredVerseUrl, getPlayerPrefs } from '../quran/player-prefs.js';
+
+// Récitateur et vitesse choisis dans le lecteur de sourate
+const recite = async (surah, v, btn = null) => playUrl(await preferredVerseUrl(surah.id, v), btn, { rate: getPlayerPrefs().rate });
 
 const $app = () => document.getElementById('app');
 const LISTEN_TARGET = 3;
@@ -90,7 +94,7 @@ function stepListen() {
   bindWordTaps();
   document.getElementById('hz-play').addEventListener('click', async e => {
     const btn = e.currentTarget;
-    await playUrl(AUDIO_VERSE + v.audio, btn);
+    await recite(H.surah, v, btn);
     H.listens++;
     stepListen();
   });
@@ -139,7 +143,7 @@ function stepMask() {
   document.getElementById('hz-hide').addEventListener('click', () => { H.hidden = Math.min(n, H.hidden + 1); haptic(); stepMask(); });
   document.getElementById('hz-unhide').addEventListener('click', () => { H.hidden = Math.max(0, H.hidden - 1); stepMask(); });
   document.getElementById('hz-all').addEventListener('click', () => { H.hidden = n; stepMask(); });
-  document.getElementById('hz-back').addEventListener('click', () => playUrl(AUDIO_VERSE + v.audio));
+  document.getElementById('hz-back').addEventListener('click', () => recite(H.surah, v));
   document.getElementById('hz-next').addEventListener('click', () => {
     H.step = 3; H.built = []; H.mistakes = 0;
     H.pool = shuffle(v.w.map((w, j) => ({ t: w.t, j })));

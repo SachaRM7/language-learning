@@ -1,4 +1,5 @@
-// js/pages/coran-surah.js — Une sourate : lecture mot à mot (chaque mot ouvre sa fiche), vocabulaire, accès à la mémorisation
+// js/pages/coran-surah.js — Une sourate : lecture mot à mot (chaque mot ouvre sa fiche), récitation synchronisée
+// (récitateurs, vitesses, tajwid, répétition, boucle), vocabulaire, accès à la mémorisation
 
 import { store } from '../store.js';
 import { navigate } from '../router.js';
@@ -10,17 +11,19 @@ import { icon } from '../icons.js';
 import { ring, haptic } from '../ui.js';
 import { ensureAllDecks } from '../decks.js';
 import { openWordSheet } from '../components/quran-sheets.js';
-import { playUrl, playSequence, stopAudio } from '../components/quran-audio.js';
+import { createSurahPlayer } from '../components/quran-player.js';
+import { getTajweed, runsToHtml } from '../quran/recitation.js';
+import { getPlayerPrefs, fontSizeOf } from '../quran/player-prefs.js';
 import {
   loadSurah, loadLexicon, knownLemmas, comprehension, memorizedVerses, cachedFr, fetchFr,
-  lemmaMeaning, lemmaCardId, translitAr, AUDIO_VERSE,
+  lemmaMeaning, lemmaCardId, translitAr,
 } from '../quran.js';
 
 const $app = () => document.getElementById('app');
 const BASMALA = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ';
 let S = null;
 
-export async function renderCoranSurah({ n }) {
+export async function renderCoranSurah({ n, v }) {
   const id = Number(n);
   const course = store.get('currentCourse');
   let surah;
@@ -29,15 +32,29 @@ export async function renderCoranSurah({ n }) {
   const [known, memorized, lexicon, srs] = await Promise.all([
     knownLemmas(course.id), memorizedVerses(), loadLexicon(), db.getSRS(course.id),
   ]);
+  S?.player?.destroy();
+  const previous = S?.surah?.id === id ? S : null;
   S = {
     surah, known, memorized, lexicon,
+    tajweed: previous?.tajweed || null,
     srsMap: Object.fromEntries(srs.map(e => [e.cardId, e])),
     tab: S?.surah?.id === id ? S.tab : 'read',
     showFr: S?.showFr ?? true,
     showKnown: S?.showKnown ?? true,
     fr: cachedFr(id),
   };
+  S.player = createSurahPlayer(surah, {
+    container: () => document.querySelector('.qs-verses'),
+    onDisplayChange: (prefs, changed) => {
+      if (changed.includes('tajweed') && prefs.tajweed) loadTajweed();
+      if (S.tab === 'read') { renderTab(); S.player.refresh(); }
+    },
+  });
+  const target = Number(v) - 1;
+  if (target >= 0 && target < surah.verses.length) S.player.cue(target);
   render();
+  if (getPlayerPrefs().tajweed) loadTajweed();
+  if (target >= 0) setTimeout(() => document.getElementById(`v-${target + 1}`)?.scrollIntoView({ block: 'center' }), 120);
   if (!S.fr) {
     fetchFr(id).then(fr => { if (fr && S?.surah.id === id) { S.fr = fr; if (S.tab === 'vocab') renderTab(); } });
   }
@@ -50,7 +67,7 @@ function render() {
   const place = surah.place === 'makkah' ? 'Mecquoise' : 'Médinoise';
 
   $app().innerHTML = `
-    ${renderHeader({ title: surah.name, back: '/coran' })}
+    ${renderHeader({ title: surah.name, back: '/coran', actions: [{ id: 'player-settings', icon: 'settings', label: 'Réglages de la récitation' }] })}
     <main class="page-content page-content--nav qs-page">
       <section class="qs-hero">
         <div class="qs-hero__num">${surah.id}</div>
@@ -73,6 +90,7 @@ function render() {
       </div>
       <div id="qs-tab"></div>
     </main>
+    ${S.player.barHtml()}
     ${renderBottomNav('coran')}`;
 
   $app().querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => {
@@ -81,8 +99,24 @@ function render() {
     haptic();
     renderTab();
   }));
-  document.getElementById('qs-listen').addEventListener('click', toggleListenAll);
+  document.getElementById('qs-listen').addEventListener('click', () => {
+    if (S.tab !== 'read') { S.tab = 'read'; $app().querySelectorAll('[data-tab]').forEach(x => x.classList.toggle('is-active', x.dataset.tab === 'read')); renderTab(); }
+    S.player.toggle();
+  });
+  $app().querySelector('[data-action="player-settings"]')?.addEventListener('click', () => S.player.openSettings());
+  S.player.bindBar();
   renderTab();
+}
+
+/** Texte balisé tajwid (Quran.com), chargé à la demande ; repli silencieux sur le texte de l'app. */
+function loadTajweed() {
+  if (S.tajweed) return;
+  const id = S.surah.id;
+  getTajweed(id).then(map => {
+    if (S?.surah.id !== id) return;
+    S.tajweed = map;
+    if (S.tab === 'read' && getPlayerPrefs().tajweed) { renderTab(); S.player.refresh(); }
+  }).catch(() => {});
 }
 
 function renderTab() {
@@ -91,69 +125,69 @@ function renderTab() {
   el.innerHTML = S.tab === 'read' ? readTab() : vocabTab();
   el.classList.remove('is-in'); void el.offsetWidth; el.classList.add('is-in');
   S.tab === 'read' ? bindRead(el) : bindVocab(el);
+  if (S.tab === 'read') S.player?.refresh();
 }
 
 // ── Lecture ──────────────────────────────────────────────────────────
 
 function readTab() {
   const { surah, memorized, known } = S;
+  const p = getPlayerPrefs();
+  const chip = (key, on, ic, label) => `<button class="chip ${on ? 'is-active' : ''}" data-toggle="${key}">${icon(ic)} ${label}</button>`;
   return `
     <div class="qs-toggles">
-      <button class="chip ${S.showFr ? 'is-active' : ''}" data-toggle="fr">${icon('languages')} Traduction</button>
-      <button class="chip ${S.showKnown ? 'is-active' : ''}" data-toggle="known">${icon('check-circle')} Mots connus</button>
-      <span class="qs-hint">Touche un mot pour voir son sens et sa racine</span>
+      ${chip('fr', S.showFr, 'languages', 'Traduction')}
+      ${chip('known', S.showKnown, 'check-circle', 'Mots connus')}
+      ${chip('tajweed', p.tajweed, 'sparkles', 'Tajwid')}
+      ${chip('translit', p.translit, 'type', 'Phonétique')}
+      ${chip('memorize', p.memorize, 'eye-off', 'Masquer')}
+      <span class="qs-hint">Touche un mot pour voir son sens et sa racine · ▶ pour écouter à partir d'un verset</span>
     </div>
     ${surah.id !== 1 && surah.id !== 9 ? `<div class="qs-basmala" lang="ar">${BASMALA}</div>` : ''}
-    <div class="qs-verses ${S.showFr ? '' : 'hide-fr'} ${S.showKnown ? 'show-known' : ''}">
-      ${surah.verses.map(v => `
-        <article class="qv ${memorized.has(`${surah.id}:${v.n}`) ? 'is-memorized' : ''}" id="v-${v.n}">
+    <div class="qs-verses ${S.showFr ? '' : 'hide-fr'} ${S.showKnown ? 'show-known' : ''} ${p.tajweed ? 'show-tajweed' : ''} ${p.translit ? 'show-translit' : ''} ${p.memorize ? 'is-memorize' : ''}" style="--qs-ar-size:${fontSizeOf(p.fontSize)}">
+      ${surah.verses.map((v, i) => {
+        const tj = p.tajweed && S.tajweed?.get(v.n);
+        const runs = tj && tj.length === v.w.length ? tj : null;
+        return `
+        <article class="qv ${memorized.has(`${surah.id}:${v.n}`) ? 'is-memorized' : ''}" id="v-${v.n}" data-i="${i}">
           <div class="qv__top">
             <span class="qv__num">${v.n}</span>
             ${memorized.has(`${surah.id}:${v.n}`) ? `<span class="badge badge--primary">${icon('check')} mémorisé</span>` : ''}
-            <button class="msg__audio qv__audio" data-audio="${escapeHtml(v.audio || '')}" aria-label="Écouter le verset ${v.n}">${icon('volume-2')}</button>
+            <button class="qv__reveal" data-reveal aria-label="Afficher le verset ${v.n}">${icon('eye')}</button>
+            <button class="msg__audio qv__audio" data-play="${i}" aria-label="Écouter à partir du verset ${v.n}">${icon('play')}</button>
           </div>
-          <p class="qv__ar" lang="ar">${v.w.map((w, j) => `<button class="qw ${w.l && known.has(w.l) ? 'is-known' : ''}" data-v="${v.n}" data-j="${j}">${escapeHtml(w.t)}</button>`).join(' ')}<span class="qv__end">\u06DD${arabicNum(v.n)}</span></p>
+          <p class="qv__ar" lang="ar">${v.w.map((w, j) => `<button class="qw ${w.l && known.has(w.l) ? 'is-known' : ''}" data-v="${v.n}" data-j="${j}"><span class="qw__ar">${runs ? runsToHtml(runs[j]) : escapeHtml(w.t)}</span><span class="qw__tr">${escapeHtml(w.tr || '')}</span></button>`).join(' ')}<span class="qv__end">\u06DD${arabicNum(v.n)}</span></p>
           <p class="qv__fr">${escapeHtml(v.fr)}</p>
-        </article>`).join('')}
+        </article>`;
+      }).join('')}
     </div>`;
 }
 
 function bindRead(el) {
   el.querySelectorAll('[data-toggle]').forEach(b => b.addEventListener('click', () => {
-    if (b.dataset.toggle === 'fr') S.showFr = !S.showFr; else S.showKnown = !S.showKnown;
-    renderTab();
+    const key = b.dataset.toggle;
+    haptic();
+    if (key === 'fr') { S.showFr = !S.showFr; renderTab(); return; }
+    if (key === 'known') { S.showKnown = !S.showKnown; renderTab(); return; }
+    const prefs = getPlayerPrefs();
+    S.player.apply?.({ [key]: !prefs[key] });
   }));
   el.querySelectorAll('.qw').forEach(b => b.addEventListener('click', () => {
     const verse = S.surah.verses.find(v => v.n === Number(b.dataset.v));
+    const i = S.surah.verses.indexOf(verse);
+    const j = Number(b.dataset.j);
     haptic();
-    openWordSheet({ surahId: S.surah.id, verse, j: Number(b.dataset.j) });
+    if (S.player.isPlaying()) S.player.pause();
+    openWordSheet({ surahId: S.surah.id, verse, j, onPlayFrom: () => S.player.playFrom(i, j) });
   }));
-  el.querySelectorAll('[data-audio]').forEach(b => b.addEventListener('click', () => {
-    if (b.dataset.audio) playUrl(AUDIO_VERSE + b.dataset.audio, b);
+  el.querySelectorAll('[data-play]').forEach(b => b.addEventListener('click', () => {
+    const i = Number(b.dataset.play);
+    if (S.player.index === i && S.player.isPlaying()) S.player.pause();
+    else S.player.playFrom(i);
   }));
-}
-
-let _listening = false;
-async function toggleListenAll() {
-  const btn = document.getElementById('qs-listen');
-  if (_listening) { stopAudio(); return; }
-  if (S.tab !== 'read') { S.tab = 'read'; render(); }
-  _listening = true;
-  const b = document.getElementById('qs-listen');
-  b.innerHTML = `${icon('pause')} Arrêter`;
-  await playSequence(S.surah.verses.map(v => AUDIO_VERSE + v.audio), i => {
-    document.querySelectorAll('.qv.is-playing').forEach(x => x.classList.remove('is-playing'));
-    if (i >= 0) {
-      const el = document.getElementById(`v-${S.surah.verses[i].n}`);
-      el?.classList.add('is-playing');
-      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  });
-  _listening = false;
-  document.querySelectorAll('.qv.is-playing').forEach(x => x.classList.remove('is-playing'));
-  const b2 = document.getElementById('qs-listen');
-  if (b2) b2.innerHTML = `${icon('headphones')} Écouter`;
-  void btn;
+  el.querySelectorAll('[data-reveal]').forEach(b => b.addEventListener('click', () => {
+    b.closest('.qv').classList.toggle('is-revealed');
+  }));
 }
 
 // ── Vocabulaire ──────────────────────────────────────────────────────

@@ -71,6 +71,15 @@ export async function renderCoranHome() {
           </button>` : ''}
 
 
+        <button class="row pressable tj-entry" data-navigate="/tajwid">
+          <span class="row__icon">${icon('mic')}</span>
+          <span class="row__body">
+            <span class="row__title">Apprendre le tajwid</span>
+            <span class="row__meta">6 niveaux, des voyelles aux règles avancées · exemples récités</span>
+          </span>
+          <span class="row__chev">${icon('chevron-right')}</span>
+        </button>
+
         <button class="row pressable cp-entry" data-navigate="/comprendre">
           <span class="row__icon">${icon('reader')}</span>
           <span class="row__body">
