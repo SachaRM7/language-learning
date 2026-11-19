@@ -368,9 +368,10 @@ async function mergeDefs(env, pages) {
     for (const w of words) {
       if (!w.ar || !w.definition) continue;
       // Clé = le mot tel que fourni ; on garde la première définition trouvée (page où commence l'article)
-      const key = Object.keys(m.lemmas).find(l => l === w.ar || strip(l) === strip(w.ar))
-        || (m.extra || []).find(e => e.ar === w.ar || strip(e.ar) === strip(w.ar))?.ar
-        || w.ar;
+      // Correspondance exacte d'abord ; sans voyelles seulement si elle est unique (عَلِمَ ≠ عِلْم)
+      const known = [...Object.keys(m.lemmas), ...(m.extra || []).map(e => e.ar)];
+      const loose = known.filter(k => strip(k) === strip(w.ar));
+      const key = known.includes(w.ar) ? w.ar : loose.length === 1 ? loose[0] : w.ar;
       if (!m.defs[key]) m.defs[key] = { definition: w.definition, nuance: w.nuance || '', citation: w.citation || '' };
     }
     merged.set(root, m);

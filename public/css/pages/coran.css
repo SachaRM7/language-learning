@@ -307,8 +307,10 @@
 .q-kz-note .ico { width: 14px; height: 14px; flex: none; margin-top: 2px; color: var(--gold-ink); }
 .q-kz-extra { margin-top: var(--sp-4); }
 .q-kz-extra ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
-.q-kz-extra li { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: 8px var(--sp-3); border-radius: var(--r-sm); background: var(--surface-2); font-size: var(--fs-sm); }
-.q-kz-extra li [lang="ar"] { font-family: var(--font-arabic); font-size: var(--fs-ar-sm); order: 2; }
+.q-kz-extra__row { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: 8px var(--sp-3); border-radius: var(--r-sm); background: var(--surface-2); font-size: var(--fs-sm); }
+.q-kz-extra__row > span:nth-child(2) { flex: 1; }
+.q-kz-extra__row [lang="ar"] { font-family: var(--font-arabic); font-size: var(--fs-ar-sm); order: 2; }
+.q-kz-extra__row .q-fam__more { order: 3; }
 
 /* ═════════ Récitation synchronisée (lecteur de sourate) ═════════ */
 :root {
@@ -465,3 +467,18 @@
 @media (prefers-reduced-motion: reduce) {
   .qw, .qp-play { transition: none; }
 }
+
+/* Définitions dépliables (Kazimirski) */
+.q-fam__det > summary { list-style: none; cursor: pointer; }
+.q-fam__det > summary::-webkit-details-marker { display: none; }
+.q-fam__more { display: grid; place-items: center; width: 22px; height: 22px; color: var(--ink-3); order: 4; transition: transform var(--dur-2) var(--ease-out); }
+.q-fam__more .ico { width: 15px; height: 15px; }
+.q-fam__det[open] .q-fam__more { transform: rotate(180deg); }
+.q-fam__det[open] > summary { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.q-def { padding: var(--sp-3) var(--sp-4) var(--sp-4); background: var(--surface); border-radius: 0 0 var(--r-sm) var(--r-sm); display: flex; flex-direction: column; gap: var(--sp-2); font-size: var(--fs-sm); line-height: 1.5; }
+.q-kz-extra .q-def { background: var(--surface-2); }
+.q-def__text { color: var(--ink); }
+.q-def__nuance { color: var(--ink-2); background: var(--primary-soft); padding: 6px 10px; border-radius: var(--r-xs, 6px); }
+.q-def__nuance b { color: var(--primary-ink); margin-right: 4px; }
+.q-def__cite { margin: 0; padding-left: 10px; border-left: 3px solid var(--gold); color: var(--ink-3); font-style: italic; font-size: var(--fs-xs); }
+.q-def__cite cite { display: block; font-style: normal; font-size: var(--fs-2xs); margin-top: 2px; }

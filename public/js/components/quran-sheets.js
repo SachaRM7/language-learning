@@ -9,7 +9,7 @@ import { icon } from '../icons.js';
 import { haptic, toast } from '../ui.js';
 import { createSRSEntry } from '../srs.js';
 import { showModal, hideModal } from './modal.js';
-import { loadLexicon, lemmaMeaning, lemmaCardId, knownLemmas, translitAr, AUDIO_WORD, cachedFr, kazimirskiMap } from '../quran.js';
+import { loadLexicon, lemmaMeaning, lemmaCardId, knownLemmas, translitAr, AUDIO_WORD, cachedFr, kazimirskiMap, kazimirskiDef } from '../quran.js';
 import { playUrl } from './quran-audio.js';
 import { kazimirskiButton, bindKazimirskiButtons } from './dictionary.js';
 
@@ -21,20 +21,35 @@ function rootChips(root, cls = '') {
   return `<span class="q-root ${cls}" lang="ar" dir="rtl">${rootLetters(root).map(l => `<b>${escapeHtml(l)}</b>`).join('')}</span>`;
 }
 
+/** Bloc « définition / nuance / citation » de Kazimirski, ou chaîne vide. */
+function defBlock(d) {
+  if (!d) return '';
+  return `
+    <div class="q-def">
+      <p class="q-def__text">${escapeHtml(d.definition)}</p>
+      ${d.nuance ? `<p class="q-def__nuance"><b>Nuance</b> ${escapeHtml(d.nuance)}</p>` : ''}
+      ${d.citation ? `<blockquote class="q-def__cite">« ${escapeHtml(d.citation)} » <cite>Kazimirski, 1860</cite></blockquote>` : ''}
+    </div>`;
+}
+
 function familyList(root, lexicon, known, current) {
   const lemmas = lexicon.roots[root] || [];
   return lemmas.slice(0, 24).map(l => {
     const [, count, pos] = lexicon.lemmas[l] || [];
     const m = lemmaMeaning(l, lexicon);
-    return `
-      <li class="q-fam__item ${l === current ? 'is-current' : ''} ${known.has(l) ? 'is-known' : ''}">
+    const def = kazimirskiDef(root, l);
+    const head = `
         <span class="q-fam__ar" lang="ar">${escapeHtml(l)}</span>
         <span class="q-fam__body">
           <span class="q-fam__mean">${escapeHtml(m.text || '—')}${m.lang === 'en' ? ' <i class="q-en">EN</i>' : ''}${m.source === 'kazimirski' ? ' <i class="q-kz" title="Sens corrigé d’après Kazimirski">K</i>' : ''}</span>
           <span class="q-fam__meta">${escapeHtml(translitAr(l))} · ${escapeHtml(pos || '')} · ${count}×</span>
         </span>
         ${known.has(l) ? `<span class="q-fam__ok" title="Connu">${icon('check')}</span>` : ''}
-      </li>`;
+        ${def ? `<span class="q-fam__more" aria-hidden="true">${icon('chevron-down')}</span>` : ''}`;
+    const cls = `q-fam__item ${l === current ? 'is-current' : ''} ${known.has(l) ? 'is-known' : ''}`;
+    return def
+      ? `<li><details class="q-fam__det" ${l === current ? 'open' : ''}><summary class="${cls}">${head}</summary>${defBlock(def)}</details></li>`
+      : `<li class="${cls}">${head}</li>`;
   }).join('');
 }
 
@@ -140,7 +155,11 @@ export async function openRootSheet(root) {
         ${kz?.extra?.length ? `
           <div class="q-kz-extra">
             <div class="modal-section__title">Autres mots de la famille (Kazimirski)</div>
-            <ul>${kz.extra.map(e => `<li><span lang="ar">${escapeHtml(e.ar)}</span><span>${escapeHtml(e.fr)}</span></li>`).join('')}</ul>
+            <ul>${kz.extra.map(e => {
+              const d = kazimirskiDef(root, e.ar);
+              const row = `<span lang="ar">${escapeHtml(e.ar)}</span><span>${escapeHtml(e.fr)}</span>${d ? `<span class="q-fam__more" aria-hidden="true">${icon('chevron-down')}</span>` : ''}`;
+              return d ? `<li><details class="q-fam__det"><summary class="q-kz-extra__row">${row}</summary>${defBlock(d)}</details></li>` : `<li class="q-kz-extra__row">${row}</li>`;
+            }).join('')}</ul>
           </div>` : ''}
         ${kazimirskiButton(root)}
       </div>

@@ -134,6 +134,16 @@ export function kazimirskiLemma(lemma, lexicon = _lexicon) {
   return root ? kazimirskiMap()[root]?.lemmas?.[lemma] || null : null;
 }
 
+/** Définition, nuance et citation de Kazimirski pour un mot (lemme ou dérivé) d'une racine, ou null. */
+export function kazimirskiDef(root, word) {
+  const defs = kazimirskiMap()[root]?.defs;
+  if (!defs || !word) return null;
+  if (defs[word]) return defs[word];
+  const strip = w => String(w).replace(/[\u064B-\u065F\u0670\u0640]/g, '');
+  const loose = Object.keys(defs).filter(x => strip(x) === strip(word));
+  return loose.length === 1 ? defs[loose[0]] : null;
+}
+
 /** Récupère les résultats Kazimirski (toutes les 30 min). Renvoie true s'il y a du nouveau. */
 export async function refreshKazimirski() {
   let cache = null;
