@@ -80,6 +80,90 @@ const SCHEMA = {
 };
 
 /** Lemmes du lexique pour un ensemble de racines (requêtes par paquets : D1 limite les paramètres). */
+const DEF_SYSTEM = `Tu es lexicographe, spécialiste de l'arabe classique et coranique, et pédagogue pour des francophones.
+Tu lis une page scannée du « Dictionnaire arabe-français » de A. de Biberstein Kazimirski (Paris, 1860), classé par racines, en 4 vues agrandies : colonne de gauche (haut, bas) puis colonne de droite (haut, bas).
+
+On te donne des racines présentes sur la page et, pour chacune, la liste des mots à définir. Pour chaque mot de la liste qui est réellement traité sur CETTE page (sinon, omets-le) :
+- ar : le mot tel qu'il est donné dans la liste ;
+- definition : ses sens principaux selon Kazimirski, numérotés (1 à 4 sens, les plus importants d'abord), en français moderne et clair, 25 mots au plus ;
+- nuance : en une phrase courte (20 mots au plus), ce qui distingue ce mot des autres mots de la liste au sens proche (forme, emploi, registre), pour qu'un apprenant ne les confonde pas ; chaîne vide si rien d'utile ;
+- citation : un extrait EXACT du texte français de Kazimirski pour ce mot, recopié tel qu'imprimé (orthographe de 1860 comprise), 30 mots au plus, coupé avec « … » si besoin.
+N'invente rien qui ne soit pas sur la page. Respecte la sensibilité religieuse du texte. Écris « Allah » pour اللَّه.`;
+
+const DEF_SCHEMA = {
+  type: 'object',
+  properties: {
+    roots: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          root: { type: 'string' },
+          words: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                ar: { type: 'string' },
+                definition: { type: 'string' },
+                nuance: { type: 'string' },
+                citation: { type: 'string' },
+              },
+              required: ['ar', 'definition', 'nuance', 'citation'],
+              additionalProperties: false,
+            },
+          },
+        },
+        required: ['root', 'words'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['roots'],
+  additionalProperties: false,
+};
+
+const isDefs = kind => String(kind).startsWith('defs');
+
+/** Mots à définir pour chaque racine : nos lemmes et les dérivés déjà relevés. */
+async function wordsFor(env, roots) {
+  const byRoot = await lemmasFor(env, roots);
+  const words = new Map(roots.map(r => [r, (byRoot.get(r) || []).sort((a, b) => b.count - a.count).slice(0, 14).map(l => l.lemma)]));
+  for (let k = 0; k < roots.length; k += 80) {
+    const part = roots.slice(k, k + 80);
+    const { results } = await env.DB
+      .prepare(`SELECT root, data FROM kz_root WHERE root IN (${part.map((_, i) => `?${i + 1}`).join(',')})`)
+      .bind(...part).all();
+    for (const r of results) {
+      try { for (const e of JSON.parse(r.data).extra || []) words.get(r.root)?.push(e.ar); } catch { /* ignore */ }
+    }
+  }
+  return words;
+}
+
+function defRequest(v, n, targets, words) {
+  const lines = targets.map(root => `• Racine ${[...root].join('-')} (${root}) : ${words.get(root).join(' ، ')}`);
+  return {
+    custom_id: `v${v}-n${n}`,
+    params: {
+      model: MODEL,
+      max_tokens: 16000,
+      system: DEF_SYSTEM,
+      output_config: { effort: 'medium', format: { type: 'json_schema', schema: DEF_SCHEMA } },
+      messages: [{
+        role: 'user',
+        content: [
+          ...REGIONS.flatMap(([region, label]) => [
+            { type: 'text', text: `Vue : ${label}` },
+            { type: 'image', source: { type: 'url', url: iiif(v, n, region) } },
+          ]),
+          { type: 'text', text: `Racines et mots à définir (volume ${v}) :\n${lines.join('\n')}\n\nPour root, recopie la racine écrite entre parenthèses ci-dessus.` },
+        ],
+      }],
+    },
+  };
+}
+
 async function lemmasFor(env, roots) {
   const byRoot = new Map(roots.map(r => [r, []]));
   for (let k = 0; k < roots.length; k += 80) {
@@ -120,8 +204,16 @@ function pageRequest(v, n, targets, byRoot) {
 }
 
 /** Requêtes d'un lot : pages [[volume, vue, [racines attendues]], …], cibles calculées hors ligne. */
-export async function buildRequests(env, pages) {
-  const byRoot = await lemmasFor(env, [...new Set(pages.flatMap(p => p[2] || []))]);
+export async function buildRequests(env, pages, kind = 'full') {
+  const roots = [...new Set(pages.flatMap(p => p[2] || []))];
+  if (isDefs(kind)) {
+    const words = await wordsFor(env, roots);
+    return pages
+      .map(([v, n, targets = []]) => ({ v, n, targets: targets.filter(r => words.get(r)?.length) }))
+      .filter(p => p.targets.length)
+      .map(p => defRequest(p.v, p.n, p.targets, words));
+  }
+  const byRoot = await lemmasFor(env, roots);
   return pages
     .map(([v, n, targets = []]) => ({ v, n, targets: targets.filter(r => byRoot.get(r)?.length) }))
     .filter(p => p.targets.length)
@@ -138,9 +230,9 @@ export async function processKazimirski(env) {
   const report = { submitted: 0, waiting: 0, ingested: null };
 
   const { results: queued } = await env.DB
-    .prepare("SELECT id, pages FROM kz_job WHERE status = 'queued' ORDER BY id LIMIT ?1").bind(SUBMIT_PER_RUN).all();
+    .prepare("SELECT id, kind, pages FROM kz_job WHERE status = 'queued' ORDER BY id LIMIT ?1").bind(SUBMIT_PER_RUN).all();
   for (const job of queued) {
-    const requests = await buildRequests(env, JSON.parse(job.pages));
+    const requests = await buildRequests(env, JSON.parse(job.pages), job.kind);
     if (!requests.length) {
       await env.DB.prepare("UPDATE kz_job SET status = 'ingested', updated_at = ?1 WHERE id = ?2").bind(Date.now(), job.id).run();
       continue;
@@ -187,13 +279,14 @@ async function ingest(env, client, job) {
     ok++;
     pages.push({ v: Number(v), n: Number(n), text, data });
   }
-  const stmt = env.DB.prepare(`INSERT INTO kz_page (volume, view, job_id, result, updated_at) VALUES (?1, ?2, ?3, ?4, ?5)
+  const table = isDefs(job.kind) ? 'kz_def_page' : 'kz_page';
+  const stmt = env.DB.prepare(`INSERT INTO ${table} (volume, view, job_id, result, updated_at) VALUES (?1, ?2, ?3, ?4, ?5)
     ON CONFLICT (volume, view) DO UPDATE SET job_id = excluded.job_id, result = excluded.result, updated_at = excluded.updated_at`);
   const writes = pages.map(p => stmt.bind(p.v, p.n, job.id, p.text, now));
   for (let k = 0; k < writes.length; k += 50) await env.DB.batch(writes.slice(k, k + 50));
-  await mergeRoots(env, pages);
+  if (isDefs(job.kind)) await mergeDefs(env, pages); else await mergeRoots(env, pages);
   // Les pages en échec (image indisponible, surcharge…) repartent dans un nouveau lot, deux fois au plus
-  const next = { full: 'retry', pilot: 'retry', retry: 'retry2' }[job.kind];
+  const next = { full: 'retry', pilot: 'retry', retry: 'retry2', defs: 'defs-retry', 'defs-pilot': 'defs-retry', 'defs-retry': 'defs-retry2' }[job.kind];
   if (retry.size && next) {
     const again = JSON.parse(job.pages).filter(([v, n]) => retry.has(`v${v}-n${n}`));
     if (again.length) {
@@ -245,6 +338,47 @@ async function mergeRoots(env, pages) {
   const stmt = env.DB.prepare(`INSERT INTO kz_root (root, sense, data, updated_at) VALUES (?1, ?2, ?3, ?4)
     ON CONFLICT (root) DO UPDATE SET sense = excluded.sense, data = excluded.data, updated_at = excluded.updated_at`);
   const writes = roots.map(root => stmt.bind(root, merged.get(root).sense, JSON.stringify(merged.get(root)), now));
+  for (let k = 0; k < writes.length; k += 50) await env.DB.batch(writes.slice(k, k + 50));
+}
+
+const cleanRoot = r => {
+  const s = String(r || '');
+  const inner = s.match(/\(([^)]+)\)/);
+  return (inner ? inner[1] : s).replace(/[()\s\-‐]/g, '');
+};
+
+/** Ajoute définition, nuance et citation aux mots de la synthèse (lemmes et dérivés). */
+async function mergeDefs(env, pages) {
+  const found = pages.flatMap(p => (p.data.roots || []).map(r => ({ root: cleanRoot(r.root), words: r.words || [] })))
+    .filter(r => r.root && r.words.length);
+  const roots = [...new Set(found.map(r => r.root))];
+  if (!roots.length) return;
+  const merged = new Map();
+  for (let k = 0; k < roots.length; k += 80) {
+    const part = roots.slice(k, k + 80);
+    const { results } = await env.DB
+      .prepare(`SELECT root, data FROM kz_root WHERE root IN (${part.map((_, i) => `?${i + 1}`).join(',')})`)
+      .bind(...part).all();
+    for (const r of results) { try { merged.set(r.root, JSON.parse(r.data)); } catch { /* ignore */ } }
+  }
+  const strip = w => String(w || '').replace(/[ً-ٰٟـ]/g, '');
+  for (const { root, words } of found) {
+    const m = merged.get(root) || { sense: '', lemmas: {}, extra: [], pages: [] };
+    m.defs = m.defs || {};
+    for (const w of words) {
+      if (!w.ar || !w.definition) continue;
+      // Clé = le mot tel que fourni ; on garde la première définition trouvée (page où commence l'article)
+      const key = Object.keys(m.lemmas).find(l => l === w.ar || strip(l) === strip(w.ar))
+        || (m.extra || []).find(e => e.ar === w.ar || strip(e.ar) === strip(w.ar))?.ar
+        || w.ar;
+      if (!m.defs[key]) m.defs[key] = { definition: w.definition, nuance: w.nuance || '', citation: w.citation || '' };
+    }
+    merged.set(root, m);
+  }
+  const now = Date.now();
+  const stmt = env.DB.prepare(`INSERT INTO kz_root (root, sense, data, updated_at) VALUES (?1, ?2, ?3, ?4)
+    ON CONFLICT (root) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at`);
+  const writes = roots.map(root => stmt.bind(root, merged.get(root).sense || '', JSON.stringify(merged.get(root)), now));
   for (let k = 0; k < writes.length; k += 50) await env.DB.batch(writes.slice(k, k + 50));
 }
 
