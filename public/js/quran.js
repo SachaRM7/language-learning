@@ -115,9 +115,54 @@ export async function refreshLemmaFr() {
   } catch { return 0; }
 }
 
+// ── Kazimirski : sens des racines et corrections de traduction (lus par Claude) ──────────
+
+const KZ_CACHE = 'ha-kz';
+let _kz = null;
+
+/** { racine: { sense, lemmas: { lemme: { fr, ok, note } }, extra: [{ ar, fr }] } } */
+export function kazimirskiMap() {
+  if (!_kz) {
+    try { _kz = JSON.parse(localStorage.getItem(KZ_CACHE))?.roots || {}; } catch { _kz = {}; }
+  }
+  return _kz;
+}
+
+/** Entrée Kazimirski d'un lemme (via sa racine), ou null. */
+export function kazimirskiLemma(lemma, lexicon = _lexicon) {
+  const root = lexicon?.lemmas?.[lemma]?.[0];
+  return root ? kazimirskiMap()[root]?.lemmas?.[lemma] || null : null;
+}
+
+/** Récupère les résultats Kazimirski (toutes les 30 min). Renvoie true s'il y a du nouveau. */
+export async function refreshKazimirski() {
+  let cache = null;
+  try { cache = JSON.parse(localStorage.getItem(KZ_CACHE)); } catch { /* vide */ }
+  if (cache && Date.now() - (cache.at || 0) < 30 * 60e3) return false;
+  if (!store.get('account')) return false;
+  try {
+    const res = await fetch('api/kazimirski/roots', { credentials: 'same-origin' });
+    if (!res.ok) return false;
+    const { roots = {} } = await res.json();
+    const changed = Object.keys(roots).length !== Object.keys(kazimirskiMap()).length;
+    _kz = roots;
+    try { localStorage.setItem(KZ_CACHE, JSON.stringify({ at: Date.now(), roots })); } catch { /* quota */ }
+    if (changed) {
+      (store.get('decks') || []).forEach(d => {
+        if (d.source !== 'quran') return;
+        d.cards.forEach(c => { const m = lemmaMeaning(c.id.slice(2)); if (m.lang === 'fr') c.back = m.text; });
+      });
+    }
+    return changed;
+  } catch { return false; }
+}
+
 export function lemmaMeaning(lemma, lexicon = _lexicon) {
+  // Correction issue du Kazimirski : seulement quand notre traduction a été jugée fausse, ou manquait
+  const kz = kazimirskiLemma(lemma, lexicon);
   const global = lemmaFrMap()[lemma];
-  if (global) return { text: global, lang: 'fr' };
+  if (kz && (kz.ok === false || !global)) return { text: kz.fr, lang: 'fr', source: 'kazimirski', note: kz.note };
+  if (global) return { text: global, lang: 'fr', note: kz?.note || '' };
   for (const s of _index?.surahs || []) {
     const fr = cachedFr(s.id)?.lemmas?.[lemma];
     if (fr) return { text: fr, lang: 'fr' };
