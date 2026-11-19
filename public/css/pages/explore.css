@@ -561,3 +561,15 @@
   .root-deriv__ar { font-size: 1.35rem; }
   .pf-stat { padding: var(--sp-3); }
 }
+
+/* Recherche : résultats dans l'autre onglet */
+.roots-other {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  width: 100%; margin: 0 0 var(--sp-3); padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-md); background: var(--primary-soft); color: var(--primary-ink);
+  font-size: var(--fs-sm); font-weight: 700;
+}
+:root[data-theme="dark"] .roots-other { color: var(--primary); }
+.roots-other[hidden] { display: none; }
+.roots-other .ico { width: 15px; height: 15px; }
+.roots-qlist__intro[hidden] { display: none; }

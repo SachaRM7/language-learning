@@ -3,7 +3,7 @@
 import { store } from '../store.js';
 import { renderHeader } from '../components/header.js';
 import { renderBottomNav } from '../components/bottom-nav.js';
-import { escapeHtml, removeHarakats, removeFrenchAccents } from '../utils.js';
+import { escapeHtml } from '../utils.js';
 import { playWord } from '../audio.js';
 import { icon } from '../icons.js';
 import { haptic } from '../ui.js';
@@ -11,6 +11,7 @@ import { ensureAllDecks } from '../decks.js';
 import { openRootSheet } from '../components/quran-sheets.js';
 import { kazimirskiButton, bindKazimirskiButtons } from '../components/dictionary.js';
 import { loadQuranIndex, loadSurah, loadLexicon, knownLemmas, lemmaMeaning } from '../quran.js';
+import { scoreRoot, rootTranslit } from '../root-search.js';
 
 const $app = () => document.getElementById('app');
 let _state = { roots: [], open: null, query: '', tab: 'base', quranRoots: [], lexicon: null };
@@ -75,7 +76,7 @@ function _render() {
 
       <label class="roots-search">
         ${icon('search')}
-        <input class="roots-search__input" id="roots-search" type="search" placeholder="Chercher un sens ou une racine…" autocomplete="off" aria-label="Chercher une racine">
+        <input class="roots-search__input" id="roots-search" type="search" placeholder="Racine (ك ت ب), mot arabe ou sens…" autocomplete="off" aria-label="Chercher une racine : lettres arabes, mot ou sens">
       </label>
 
       <div class="roots-list stagger" id="roots-list" ${_state.tab === 'base' ? '' : 'hidden'}>
@@ -85,10 +86,11 @@ function _render() {
         <p class="roots-qlist__intro">Les racines des sourates que tu étudies, de la plus fréquente à la plus rare dans le Coran. Touche-en une pour voir toute sa famille.</p>
         ${_state.quranRoots.map(_quranRootRow).join('')}
       </div>
+      <button class="roots-other" id="roots-other" hidden></button>
       <div class="empty" id="roots-empty" hidden>
         <div class="empty__emoji">🔎</div>
         <div class="empty__title">Aucune racine trouvée</div>
-        <div>Essaie un autre mot-clé.</div>
+        <div>Essaie les lettres de la racine (ex. ك ت ب), un mot arabe ou un sens en français.</div>
       </div>
     </main>
     ${renderBottomNav('home')}
@@ -123,9 +125,8 @@ function _rootCard(root) {
 
 function _quranRootRow(r) {
   const top = r.lemmas.slice(0, 3).map(l => lemmaMeaning(l, _state.lexicon).text).filter(Boolean);
-  const hay = [r.root, ...r.lemmas.slice(0, 8), ...top].join(' ');
   return `
-    <button class="qroot-row pressable" data-qroot="${escapeHtml(r.root)}" data-hay="${escapeHtml(hay)}">
+    <button class="qroot-row pressable" data-qroot="${escapeHtml(r.root)}">
       <span class="q-root" lang="ar" dir="rtl">${[...r.root].map(c => `<b>${escapeHtml(c)}</b>`).join('')}</span>
       <span class="qroot-row__body">
         <span class="qroot-row__mean">${escapeHtml(top.join(' · ') || '—')}</span>
@@ -199,9 +200,7 @@ function _bindEvents() {
     $app().querySelectorAll('[data-rtab]').forEach(x => x.classList.toggle('is-active', x === b));
     document.getElementById('roots-list').hidden = _state.tab !== 'base';
     document.getElementById('roots-qlist').hidden = _state.tab !== 'coran';
-    document.getElementById('roots-empty').hidden = true;
-    const input = document.getElementById('roots-search');
-    if (input) { input.value = ''; input.dispatchEvent(new Event('input')); }
+    _search(document.getElementById('roots-search')?.value || '');
     haptic(6);
   }));
   $app().querySelectorAll('[data-qroot]').forEach(b => b.addEventListener('click', e => {
@@ -222,28 +221,66 @@ function _bindEvents() {
     });
   });
 
-  const norm = s => removeFrenchAccents(removeHarakats(String(s || '')).toLowerCase());
-  document.getElementById('roots-search')?.addEventListener('input', e => {
-    const q = norm(e.target.value.trim());
-    let visible = 0;
-    if (_state.tab === 'coran') {
-      $app().querySelectorAll('.qroot-row').forEach(el => {
-        const show = !q || norm(el.dataset.hay).includes(q);
-        el.hidden = !show;
-        if (show) visible++;
-      });
-      document.getElementById('roots-empty').hidden = visible > 0;
-      return;
-    }
-    _state.roots.forEach(root => {
-      const hay = norm([root.meaning, root.transliteration, root.letters.join(''),
-        ...root.derivatives.map(d => `${d.fr} ${d.translit} ${d.arPlain || d.ar}`)].join(' '));
-      const show = !q || hay.includes(q);
-      const el = $app().querySelector(`.root-card[data-root-id="${CSS.escape(root.id)}"]`);
-      if (el) el.hidden = !show;
-      if (show) visible++;
-    });
-    const empty = document.getElementById('roots-empty');
-    if (empty) empty.hidden = visible > 0;
+  document.getElementById('roots-search')?.addEventListener('input', e => _search(e.target.value));
+  document.getElementById('roots-other')?.addEventListener('click', () => {
+    $app().querySelector(`[data-rtab="${_state.tab === 'base' ? 'coran' : 'base'}"]`)?.click();
   });
 }
+
+// ── Recherche ────────────────────────────────────────────────────────
+
+/** Éléments de recherche (calculés une fois) : lettres de la racine, mots de la famille, sens. */
+function _searchItems() {
+  if (_state.items) return _state.items;
+  const base = _state.roots.map((root, i) => ({
+    key: root.id, i,
+    root: root.letters.join(''),
+    words: root.derivatives.map(d => d.arPlain || d.ar),
+    latin: [root.meaning, root.transliteration, ...root.derivatives.map(d => `${d.fr} ${d.translit}`)].join(' '),
+  }));
+  const coran = _state.quranRoots.map((r, i) => ({
+    key: r.root, i,
+    root: r.root,
+    words: r.lemmas,
+    latin: [rootTranslit(r.root), ...r.lemmas.map(l => lemmaMeaning(l, _state.lexicon).text)].join(' '),
+  }));
+  _state.items = { base, coran };
+  return _state.items;
+}
+
+function _rank(items, q) {
+  return items.map(it => ({ it, score: scoreRoot(it, q) }))
+    .filter(x => x.score > 0)
+    .sort((a, b) => b.score - a.score || a.it.i - b.it.i); // à égalité : ordre d'origine (fréquence)
+}
+
+function _search(raw) {
+  const q = raw.trim();
+  const items = _searchItems();
+  const tab = _state.tab === 'coran' ? 'coran' : 'base';
+  const other = tab === 'base' ? 'coran' : 'base';
+  const ranked = _rank(items[tab], q);
+
+  const list = document.getElementById(tab === 'base' ? 'roots-list' : 'roots-qlist');
+  const selector = tab === 'base' ? key => `.root-card[data-root-id="${CSS.escape(key)}"]` : key => `.qroot-row[data-qroot="${CSS.escape(key)}"]`;
+  const all = list.querySelectorAll(tab === 'base' ? '.root-card' : '.qroot-row');
+  const shown = new Set(ranked.map(x => x.it.key));
+  all.forEach(el => { el.hidden = Boolean(q) && !shown.has(tab === 'base' ? el.dataset.rootId : el.dataset.qroot); });
+  // Les meilleurs résultats en premier ; ordre d'origine quand la recherche est vide
+  const order = q ? ranked.map(x => x.it) : items[tab];
+  order.forEach(it => { const el = list.querySelector(selector(it.key)); if (el) list.appendChild(el); });
+  const intro = list.querySelector('.roots-qlist__intro');
+  if (intro) { intro.hidden = Boolean(q); list.prepend(intro); }
+
+  const empty = document.getElementById('roots-empty');
+  if (empty) empty.hidden = !q || ranked.length > 0;
+  // Résultats dans l'autre onglet
+  const otherCount = q ? _rank(items[other], q).length : 0;
+  const hint = document.getElementById('roots-other');
+  if (hint) {
+    hint.hidden = otherCount === 0;
+    hint.innerHTML = `${icon('search')} ${otherCount} racine${otherCount > 1 ? 's' : ''} dans l'onglet ${other === 'coran' ? '📖 Coran' : 'Essentielles'} ${icon('arrow-right')}`;
+    if (ranked.length === 0) list.after(hint); else list.before(hint);
+  }
+}
+
