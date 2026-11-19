@@ -285,16 +285,19 @@ async function stageFiles(env, client, pages) {
   if (!missing.length) return files;
   const stmt = env.DB.prepare('INSERT OR REPLACE INTO kz_file (volume, view, region, file_id, created_at) VALUES (?1, ?2, ?3, ?4, ?5)');
   const writes = [];
+  let lastError = '';
   for (const [v, n, i] of missing) {
-    const res = await fetch(iiif(v, n, REGIONS[i][0]));
-    if (!res.ok) throw new Error(`archive.org ${res.status} (vol. ${v}, vue ${n})`);
+    // archive.org est parfois lent ou en erreur : on passe à la vue suivante, elle sera retentée plus tard
+    const res = await fetch(iiif(v, n, REGIONS[i][0])).catch(err => ({ ok: false, status: err?.message || 'réseau' }));
+    if (!res.ok) { lastError = `archive.org ${res.status} (vol. ${v}, vue ${n})`; continue; }
     const meta = await client.files.upload({
       file: await toFile(res, `kz-${v}-${n}-${i}.jpg`, { type: 'image/jpeg' }),
       expires_in_seconds: 3 * 86400,
     });
     writes.push(stmt.bind(v, n, i, meta.id, Date.now()));
   }
-  await env.DB.batch(writes);
+  if (writes.length) await env.DB.batch(writes);
+  else if (lastError) throw new Error(lastError);
   return null;
 }
 
