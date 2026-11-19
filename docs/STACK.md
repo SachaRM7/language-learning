@@ -1,3 +1,5 @@
+> ⚠️ **Obsolète** — la stack a évolué (Cloudflare Workers + D1 + Access, frontend dans `public/`). Voir le README et `docs/DESIGN-SYSTEM.md`.
+
 # STACK.md — Spécifications Techniques
 ## HelloArabic PWA
 

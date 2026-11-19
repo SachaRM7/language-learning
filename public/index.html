@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#F6F1E9">
+  <meta name="description" content="Apprends l'arabe : parcours guidé, vocabulaire, dialogues et révision espacée.">
+  <title>HelloArabic</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="images/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="images/icons/icon-192.png">
+  <script>
+    // Applique le thème avant le premier rendu (évite le flash)
+    (function () {
+      try {
+        var t = localStorage.getItem('ha-theme') || 'system';
+        if (t === 'system') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.dataset.theme = t;
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Noto+Naskh+Arabic:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Reem+Kufi:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/pages/home.css">
+  <link rel="stylesheet" href="css/pages/parcours.css">
+  <link rel="stylesheet" href="css/pages/words.css">
+  <link rel="stylesheet" href="css/pages/conversations.css">
+  <link rel="stylesheet" href="css/pages/review.css">
+  <link rel="stylesheet" href="css/pages/explore.css">
+  <link rel="stylesheet" href="css/pages/tuteur.css">
+  <link rel="stylesheet" href="css/pages/coran.css">
+  <link rel="stylesheet" href="css/pages/tajwid.css">
+  <link rel="stylesheet" href="css/pages/comprendre.css">
+  <link rel="stylesheet" href="css/desktop.css">
+  <link rel="stylesheet" href="css/motion.css">
+</head>
+<body>
+  <div id="app" aria-live="polite"></div>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

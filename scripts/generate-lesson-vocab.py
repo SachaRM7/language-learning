@@ -8,7 +8,7 @@ import re
 import sys
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.join(SCRIPT_DIR, '..')
+ROOT = os.path.join(SCRIPT_DIR, '..', 'public')
 LESSONS_DIR = os.path.join(ROOT, 'data', 'lessons')
 DECKS_FILE = os.path.join(ROOT, 'data', 'decks', 'arabic.json')
 

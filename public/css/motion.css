@@ -1,0 +1,77 @@
+/* Entrées adaptées du composant gratuit Magic UI Blur Fade (MIT).
+   Source et licence : docs/animations.md, docs/licenses/magic-ui.txt. */
+@keyframes learningReveal {
+  from { opacity: 0; transform: translateY(6px); filter: blur(3px); }
+  to { opacity: 1; transform: none; filter: blur(0); }
+}
+@keyframes learningConfirm {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.035); }
+  100% { transform: scale(1); }
+}
+@keyframes learningCheck { from { stroke-dashoffset: 40; } to { stroke-dashoffset: 0; } }
+@keyframes learningReward {
+  from { opacity: 0; transform: translateY(12px) scale(.94); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes learningWave {
+  0%, 100% { transform: scaleY(.45); }
+  50% { transform: scaleY(1); }
+}
+@keyframes learningRing { from { stroke-dashoffset: var(--ring-circumference); } }
+@keyframes learningProgress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+.reward-host {
+  position: fixed; z-index: 1500; top: calc(env(safe-area-inset-top, 0px) + 72px);
+  left: 12px; right: 12px; display: flex; justify-content: center; pointer-events: none;
+}
+.reward-badge {
+  max-width: 420px; padding: 12px 18px; border-radius: 20px;
+  color: var(--ink); background: var(--surface); border: 1px solid var(--gold);
+  box-shadow: 0 8px 28px #0002; text-align: center;
+  animation: learningReward 300ms var(--ease-spring) both;
+}
+.reward-badge strong { display: block; font-size: var(--fs-sm); }
+.reward-badge span { display: block; margin-top: 4px; font-size: var(--fs-xs); color: var(--ink-2); }
+.session-xp { margin: 16px auto; width: fit-content; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .quiz__prompt, .rs-card, .hz-card, .tt-correction, .result__title, .result__subtitle {
+    animation: learningReveal 280ms ease-out both;
+  }
+  .result__subtitle { animation-delay: 60ms; }
+  .goal .ring__bar, .words-result .ring__bar, .qs-ring .ring__bar { animation: learningRing 650ms ease-out both; }
+  .session-xp { animation: learningReward 320ms var(--ease-spring) 120ms both; }
+  .result .progress__fill, .goal .progress__fill { transform-origin: left; animation: learningProgress 650ms ease-out both; }
+  .choice-btn.is-correct, .written-input.is-correct { animation: learningConfirm 280ms ease-out; }
+  .feedback-bar--correct .feedback-bar__icon svg { stroke-dasharray: 40; animation: learningCheck 350ms ease-out both; }
+  .quiz:has(.choice-btn.is-correct) .image-stage { animation: learningConfirm 300ms ease-out; }
+  .fc-btn, .match-cell, .tt-scenario, .mode-card { transition: scale 140ms ease-out, box-shadow 180ms ease-out; }
+  .fc-btn:active, .match-cell:not(:disabled):active, .tt-scenario:active, .mode-card:active { scale: .96; }
+  .match-cell.is-selected { scale: 1.025; }
+  .match-cell.is-matched { animation: learningMatch 420ms ease-out forwards; }
+  .streak-pill.is-on .streak-pill__flame, .rv-today__streak.is-on .rv-today__flame,
+  .pf-stat.is-hot .pf-stat__emoji { animation: flicker 650ms ease-in-out 3; }
+  .tt-hero__spark { animation: learningConfirm 500ms ease-out 2; }
+  #tt-thread .msg { animation: learningReveal 240ms ease-out both; }
+  #tt-typing .msg__avatar { animation: flicker 1.2s ease-in-out infinite; }
+  #tt-mic.is-listening { animation: pulseRing 1.2s ease-out infinite; }
+}
+@keyframes learningMatch {
+  0% { opacity: 1; transform: scale(1); }
+  40% { opacity: 1; transform: scale(1.04); }
+  100% { opacity: .18; transform: scale(.94); }
+}
+/* L'onde remplace visuellement l'icône uniquement pendant la lecture. */
+:is(.audio-btn.is-playing, .listen-orb.is-playing .listen-orb__btn, .msg__audio.is-playing) { position: relative; }
+:is(.audio-btn.is-playing, .listen-orb.is-playing .listen-orb__btn, .msg__audio.is-playing) > svg { visibility: hidden; }
+:is(.audio-btn.is-playing, .listen-orb.is-playing .listen-orb__btn, .msg__audio.is-playing)::after {
+  content: ''; position: absolute; width: 4px; height: 18px; top: calc(50% - 9px); left: calc(50% - 2px);
+  border-radius: 3px; background: currentColor; box-shadow: -7px 0 currentColor, 7px 0 currentColor;
+  animation: learningWave 650ms ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reward-badge, .session-xp { animation: none; }
+  :is(.audio-btn.is-playing, .listen-orb.is-playing .listen-orb__btn, .msg__audio.is-playing)::after { animation: none; }
+  .match-cell.is-matched { opacity: .18; }
+}
