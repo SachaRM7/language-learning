@@ -209,7 +209,11 @@ async function ingest(env, client, job) {
 /** Fusionne les pages lues dans la synthèse par racine (seulement les racines concernées). */
 async function mergeRoots(env, pages) {
   // Racine renvoyée parfois entourée de parenthèses ou d'espaces : on la nettoie
-  const clean = r => String(r || '').replace(/[()\s\-‐]/g, '');
+  const clean = r => {
+    const s = String(r || '');
+    const inner = s.match(/\(([^)]+)\)/);   // « ب-أ-ر (بأر) » → « بأر »
+    return (inner ? inner[1] : s).replace(/[()\s\-‐]/g, '');
+  };
   const found = pages.flatMap(p => (p.data.roots || [])
     .filter(r => r.found && clean(r.root))
     .map(r => ({ ...r, root: clean(r.root), page: [p.v, p.n] })));
