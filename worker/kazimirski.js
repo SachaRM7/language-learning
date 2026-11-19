@@ -13,7 +13,7 @@ import { json } from './http.js';
 
 const MODEL = 'claude-opus-5-5';
 const VOLUMES = { 1: 'dictionnairearab01bibeuoft', 2: 'dictionnairearab02bibeuoft' };
-const SUBMIT_PER_RUN = 4;   // lots soumis par passage de la tâche planifiée
+const SUBMIT_PER_RUN = 1;   // lots soumis par passage (limite de calcul des tâches planifiées)
 
 function iiif(v, n, region) {
   const ident = VOLUMES[v];
@@ -36,8 +36,8 @@ On te donne des racines susceptibles d'apparaître sur cette page, avec les lemm
 Pour chaque racine fournie :
 - found : true seulement si l'article de cette racine (ou une partie) est réellement sur la page ;
 - sense : le sens de base de la racine selon Kazimirski, en français moderne et simple (5 à 15 mots) ;
-- lemmas : pour chaque lemme fourni dont le mot (ou sa forme verbale) est traité sur la page, fr = le sens le plus utile pour comprendre le Coran, court (1 à 5 mots, infinitif pour un verbe, sans article pour un nom), d'après Kazimirski ; ok = true si notre traduction actuelle est juste ; note = précision brève si utile (sinon chaîne vide) ;
-- extra : jusqu'à 4 dérivés importants de la page qui ne sont pas dans la liste (arabe vocalisé tel qu'imprimé + sens court).
+- lemmas : seulement les lemmes fournis dont le sens est réellement traité sur CETTE page (si l'article n'en montre qu'une partie, ou si le sens utile pour le Coran n'y figure pas, omets le lemme) ; fr = le sens qu'a ce mot DANS LE CORAN, court (1 à 5 mots, infinitif pour un verbe, sans article pour un nom), appuyé sur Kazimirski ; ok = true si notre traduction actuelle est juste ou acceptable pour le Coran, false seulement si elle est fausse, trompeuse ou nettement moins précise ; note = précision brève si utile (sinon chaîne vide) ;
+- extra : jusqu'à 4 dérivés de la page, utiles pour lire le Coran ou l'arabe courant, absents de la liste (arabe vocalisé tel qu'imprimé + sens court) ; évite les sens techniques rares.
 Modernise l'orthographe et le vocabulaire du XIXᵉ siècle ; n'invente rien qui ne soit pas sur la page ; si un mot est illisible, ignore-le. Respecte la sensibilité religieuse du texte. Écris « Allah » pour اللَّه.`;
 
 const SCHEMA = {
@@ -192,7 +192,11 @@ async function ingest(env, client, job) {
 
 /** Fusionne les pages lues dans la synthèse par racine (seulement les racines concernées). */
 async function mergeRoots(env, pages) {
-  const found = pages.flatMap(p => (p.data.roots || []).filter(r => r.found && r.root).map(r => ({ ...r, page: [p.v, p.n] })));
+  // Racine renvoyée parfois entourée de parenthèses ou d'espaces : on la nettoie
+  const clean = r => String(r || '').replace(/[()\s\-‐]/g, '');
+  const found = pages.flatMap(p => (p.data.roots || [])
+    .filter(r => r.found && clean(r.root))
+    .map(r => ({ ...r, root: clean(r.root), page: [p.v, p.n] })));
   const roots = [...new Set(found.map(r => r.root))];
   if (!roots.length) return;
   const merged = new Map();
@@ -206,7 +210,13 @@ async function mergeRoots(env, pages) {
   for (const r of found.sort((a, b) => a.page[0] - b.page[0] || a.page[1] - b.page[1])) {
     const m = merged.get(r.root) || { sense: '', lemmas: {}, extra: [], pages: [] };
     if (!m.sense && r.sense) m.sense = r.sense;
-    for (const l of r.lemmas || []) if (l.lemma && l.fr && !m.lemmas[l.lemma]) m.lemmas[l.lemma] = { fr: l.fr, ok: l.ok, note: l.note || '' };
+    for (const l of r.lemmas || []) {
+      if (!l.lemma || !l.fr) continue;
+      const prev = m.lemmas[l.lemma];
+      // Prudence : si une page juge notre traduction correcte, on la garde
+      if (!prev) m.lemmas[l.lemma] = { fr: l.fr, ok: l.ok, note: l.note || '' };
+      else if (l.ok && !prev.ok) m.lemmas[l.lemma] = { ...prev, ok: true };
+    }
     for (const e of r.extra || []) if (e.ar && e.fr && m.extra.length < 8 && !m.extra.some(x => x.ar === e.ar)) m.extra.push(e);
     if (!m.pages.some(p => p[0] === r.page[0] && p[1] === r.page[1])) m.pages.push(r.page);
     merged.set(r.root, m);

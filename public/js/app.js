@@ -5,7 +5,7 @@ import { initMotion } from './motion.js';
 import { db } from './db.js';
 import { applyTheme, bindHeaderScroll } from './ui.js';
 import { initSync, accountReady } from './sync.js';
-import { refreshLemmaFr } from './quran.js';
+import { refreshLemmaFr, refreshKazimirski } from './quran.js';
 import { store } from './store.js';
 import { route, startRouter, navigate, getCurrentRoute } from './router.js';
 
@@ -150,10 +150,13 @@ async function init() {
   initSync();
   // Sens français du lexique coranique (mis à jour en tâche de fond côté serveur)
   accountReady.then(async () => {
-    if (await refreshLemmaFr()) window.dispatchEvent(new CustomEvent('ha:remote-changes'));
+    const [a, b] = await Promise.all([refreshLemmaFr(), refreshKazimirski()]);
+    if (a || b) window.dispatchEvent(new CustomEvent('ha:remote-changes'));
   });
   setInterval(async () => {
-    if (document.visibilityState === 'visible' && await refreshLemmaFr()) window.dispatchEvent(new CustomEvent('ha:remote-changes'));
+    if (document.visibilityState !== 'visible') return;
+    const [a, b] = await Promise.all([refreshLemmaFr(), refreshKazimirski()]);
+    if (a || b) window.dispatchEvent(new CustomEvent('ha:remote-changes'));
   }, 5 * 60e3);
   window.addEventListener('ha:remote-changes', () => {
     applyTheme(store.get('preferences')?.theme || 'system');

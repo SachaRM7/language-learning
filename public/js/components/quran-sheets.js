@@ -9,7 +9,7 @@ import { icon } from '../icons.js';
 import { haptic, toast } from '../ui.js';
 import { createSRSEntry } from '../srs.js';
 import { showModal, hideModal } from './modal.js';
-import { loadLexicon, lemmaMeaning, lemmaCardId, knownLemmas, translitAr, AUDIO_WORD, cachedFr } from '../quran.js';
+import { loadLexicon, lemmaMeaning, lemmaCardId, knownLemmas, translitAr, AUDIO_WORD, cachedFr, kazimirskiMap } from '../quran.js';
 import { playUrl } from './quran-audio.js';
 import { kazimirskiButton, bindKazimirskiButtons } from './dictionary.js';
 
@@ -30,7 +30,7 @@ function familyList(root, lexicon, known, current) {
       <li class="q-fam__item ${l === current ? 'is-current' : ''} ${known.has(l) ? 'is-known' : ''}">
         <span class="q-fam__ar" lang="ar">${escapeHtml(l)}</span>
         <span class="q-fam__body">
-          <span class="q-fam__mean">${escapeHtml(m.text || '—')}${m.lang === 'en' ? ' <i class="q-en">EN</i>' : ''}</span>
+          <span class="q-fam__mean">${escapeHtml(m.text || '—')}${m.lang === 'en' ? ' <i class="q-en">EN</i>' : ''}${m.source === 'kazimirski' ? ' <i class="q-kz" title="Sens corrigé d’après Kazimirski">K</i>' : ''}</span>
           <span class="q-fam__meta">${escapeHtml(translitAr(l))} · ${escapeHtml(pos || '')} · ${count}×</span>
         </span>
         ${known.has(l) ? `<span class="q-fam__ok" title="Connu">${icon('check')}</span>` : ''}
@@ -62,6 +62,7 @@ export async function openWordSheet({ surahId, verse, j, onPlayFrom = null }) {
         <div class="q-sheet__tr">${escapeHtml(w.tr || '')}</div>
         <div class="q-sheet__mean">${escapeHtml(fr || (lm.lang === 'fr' ? lm.text : w.en))}${fr || lm.lang === 'fr' ? '' : ' <i class="q-en">EN</i>'}</div>
         <div class="q-sheet__ref">Sourate ${surahId}, verset ${verse.n}</div>
+        ${lm.source === 'kazimirski' || lm.note ? `<p class="q-kz-note">${icon('book-open')} <span>${lm.source === 'kazimirski' ? `<b>${escapeHtml(lm.text)}</b> — sens corrigé d’après Kazimirski. ` : ''}${escapeHtml(lm.note || '')}</span></p>` : ''}
         ${onPlayFrom ? `<button class="btn btn--tonal btn--sm q-sheet__playfrom" id="qs-playfrom">${icon('headphones')} Écouter la récitation à partir de ce mot</button>` : ''}
 
         <div class="q-sheet__grid">
@@ -121,6 +122,7 @@ export async function openRootSheet(root) {
   if (!lemmas) { toast('Racine introuvable', { icon: 'info' }); return; }
   const occurrences = lemmas.reduce((n, l) => n + (lexicon.lemmas[l]?.[1] || 0), 0);
   const knownCount = lemmas.filter(l => known.has(l)).length;
+  const kz = kazimirskiMap()[root];
   showModal(`
     <div class="modal-overlay" id="modal-overlay">
       <div class="modal q-sheet" role="dialog" aria-label="Racine">
@@ -132,8 +134,14 @@ export async function openRootSheet(root) {
             <span><b>${knownCount}</b> déjà connus</span>
           </div>
         </div>
+        ${kz?.sense ? `<p class="q-kz-sense"><b>Sens de la racine</b> ${escapeHtml(kz.sense)} <span>· d’après Kazimirski</span></p>` : ''}
         <ul class="q-fam">${familyList(root, lexicon, known, null)}</ul>
         ${lemmas.length > 24 ? `<p class="q-sheet__more">+ ${lemmas.length - 24} autres mots, plus rares</p>` : ''}
+        ${kz?.extra?.length ? `
+          <div class="q-kz-extra">
+            <div class="modal-section__title">Autres mots de la famille (Kazimirski)</div>
+            <ul>${kz.extra.map(e => `<li><span lang="ar">${escapeHtml(e.ar)}</span><span>${escapeHtml(e.fr)}</span></li>`).join('')}</ul>
+          </div>` : ''}
         ${kazimirskiButton(root)}
       </div>
     </div>`);

@@ -298,6 +298,18 @@
 .qroot-row__meta b { color: var(--success); }
 .root-card__quran { margin-top: var(--sp-3); }
 
+/* Apports du dictionnaire de Kazimirski */
+.q-kz { font-style: normal; font-size: 9px; font-weight: 800; padding: 1px 5px; border-radius: 6px; background: var(--gold-soft); color: var(--gold-ink); vertical-align: 1px; }
+.q-kz-sense { font-size: var(--fs-sm); line-height: 1.5; color: var(--ink-2); padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md); background: var(--surface-sunk); margin-bottom: var(--sp-3); }
+.q-kz-sense b { color: var(--ink); margin-right: 4px; }
+.q-kz-sense span { color: var(--ink-3); font-size: var(--fs-xs); }
+.q-kz-note { display: flex; gap: 8px; align-items: flex-start; font-size: var(--fs-xs); line-height: 1.5; color: var(--ink-2); background: var(--gold-soft); padding: var(--sp-2) var(--sp-3); border-radius: var(--r-sm); margin: var(--sp-2) 0; text-align: start; }
+.q-kz-note .ico { width: 14px; height: 14px; flex: none; margin-top: 2px; color: var(--gold-ink); }
+.q-kz-extra { margin-top: var(--sp-4); }
+.q-kz-extra ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.q-kz-extra li { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: 8px var(--sp-3); border-radius: var(--r-sm); background: var(--surface-2); font-size: var(--fs-sm); }
+.q-kz-extra li [lang="ar"] { font-family: var(--font-arabic); font-size: var(--fs-ar-sm); order: 2; }
+
 /* ═════════ Récitation synchronisée (lecteur de sourate) ═════════ */
 :root {
   --tj-ghunna: #13844D;  --tj-ikhfa: #8240C9;   --tj-idgham: #0B7F86;  --tj-idghamx: #4859D6;
