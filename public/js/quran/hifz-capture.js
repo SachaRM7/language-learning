@@ -1,11 +1,34 @@
+// Démarrer la capture dans le geste utilisateur, avant l’import du moteur.
+export function prepareRecitationMicrophone() {
+  const context = new AudioContext();
+  context.resume().catch(() => {});
+  let stream;
+  try {
+    stream = navigator.mediaDevices.getUserMedia({
+      audio: { channelCount: 1, echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+    });
+  } catch (error) {
+    void context.close().catch(() => {});
+    throw error;
+  }
+  let released = false;
+  return {
+    context, stream,
+    release() {
+      if (released) return;
+      released = true;
+      stream.then(media => media.getTracks().forEach(track => track.stop()), () => {});
+      void context.close().catch(() => {});
+    },
+  };
+}
+
 // Tilawa utilise un AudioWorklet. Si le navigateur ouvre le micro mais refuse
 // ce graphe audio, on envoie les échantillons du même micro à la même session.
 export async function listenToVerse(engine, session, prepared, signal, onLevel) {
   const stream = await prepared.stream;
   signal.throwIfAborted();
   const context = prepared.context;
-  if (context.state !== 'running') await context.resume();
-  signal.throwIfAborted();
 
   try {
     // L'appelant reste propriétaire du micro en cas d'échec du worklet.

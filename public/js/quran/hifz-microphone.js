@@ -1,7 +1,7 @@
 // L'élément possède le micro uniquement pendant sa présence dans l'exercice.
 import { stopAudio } from '../components/quran-audio.js';
 
-import { listenToVerse } from './hifz-capture.js';
+import { listenToVerse, prepareRecitationMicrophone } from './hifz-capture.js';
 
 const labels = {
   wrong_word: 'Mot à reprendre',
@@ -13,7 +13,7 @@ const labels = {
 class HifzMicrophone extends HTMLElement {
   connectedCallback() {
     this.controller = new AbortController();
-    this.innerHTML = `<button class="btn btn--secondary btn--block">Préparer la récitation au micro</button>
+    this.innerHTML = `<button class="btn btn--secondary btn--block">Réciter au micro</button>
       <p class="hz-help" role="status">Tilawa télécharge son modèle léger (environ 25 Mo) à la première utilisation. Ta voix reste sur cet appareil.</p>
       <p data-progress></p>
       <label hidden>Niveau du micro <meter min="-70" max="0" value="-70"></meter></label>
@@ -81,21 +81,28 @@ class HifzMicrophone extends HTMLElement {
   async activate() {
     this.button.disabled = true;
     const signal = this.controller.signal;
+    let stage = 'arrêt de la récitation';
     try {
-      if (!this.engine) {
-        this.status.textContent = 'Préparation du modèle de récitation…';
-        this.sdk = await import('/js/vendor/tilawa.js');
-        if (signal.aborted) return;
-        this.engine = await this.sdk.createTilawa({ tier: 'lite', signal });
-        if (signal.aborted) { await this.engine.dispose(); return; }
-        this.status.textContent = 'Prêt. Appuie pour activer le micro.';
-      } else if (this.mic) {
+      if (this.mic) {
         await this.finish();
         this.session.dispose();
         this.status.textContent = this.tracked ? 'Récitation terminée.' : this.heard ? 'Passage entendu, position incertaine.' : 'Aucune voix détectée.';
       } else {
         stopAudio();
-        this.prepared = this.sdk.prepareMicrophone();
+        stage = 'ouverture du micro';
+        this.prepared = prepareRecitationMicrophone();
+        this.status.textContent = 'Ouverture du micro…';
+        await this.prepared.stream;
+        if (signal.aborted) return;
+        if (!this.engine) {
+          stage = 'préparation du modèle';
+          this.status.textContent = 'Micro autorisé. Préparation du modèle…';
+          const sdk = await import('/js/vendor/tilawa.js');
+          if (signal.aborted) return;
+          this.engine = await sdk.createTilawa({ tier: 'lite', signal });
+          if (signal.aborted) { await this.engine.dispose(); return; }
+        }
+        stage = 'création de la session';
         this.session = this.engine.startMemorization({
           surah: Number(this.dataset.surah), fromAyah: Number(this.dataset.from), toAyah: Number(this.dataset.to),
         }, { confirm: { after: 'next-word' } });
@@ -120,6 +127,7 @@ class HifzMicrophone extends HTMLElement {
         });
         const meter = this.querySelector('meter');
         meter.value = -70;
+        stage = 'connexion audio';
         this.mic = await listenToVerse(this.engine, this.session, this.prepared, signal, db => {
           meter.value = db;
           if (db > -48) this.heard = true;
@@ -138,11 +146,9 @@ class HifzMicrophone extends HTMLElement {
       console.warn('HelloArabic — récitation', error);
       this.status.textContent = error.reason === 'denied' || error.name === 'NotAllowedError'
         ? 'Autorise le micro dans ton navigateur pour réciter.'
-        : this.engine
-          ? `Échec de la récitation (${error.cause?.name || error.name || 'audio'}). Appuie pour réessayer.`
-          : 'Le modèle de récitation n’a pas pu être chargé. Appuie pour réessayer.';
+        : `Échec · ${stage} (${error.cause?.name || error.name || 'audio'}). Appuie pour réessayer.`;
     } finally {
-      this.button.textContent = this.mic ? 'Terminer ma récitation' : this.engine ? 'Réciter au micro' : 'Préparer la récitation au micro';
+      this.button.textContent = this.mic ? 'Terminer ma récitation' : 'Réciter au micro';
       this.button.disabled = false;
     }
   }
