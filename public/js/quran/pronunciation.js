@@ -20,7 +20,7 @@ export function decodePhonemes(logits) {
 // Ancrer les deux observations au verset évite de noter une prise partielle.
 export function assessFatiha(text) {
   const verse = /^ءَل([حه])َمدُلِللَا+هِرَببِلعَا+لَمِ(ۦ*)ن$/u.exec(text);
-  if (!verse) return 'Prise incertaine. Récite tout le verset et marque l’arrêt final.';
+  if (!verse) return { result: 'Prise incertaine. Récite tout le verset et marque l’arrêt final.' };
   const count = verse[2].length;
   const letter = verse[1] === 'ه'
     ? 'Dans الْحَمْدُ, le modèle a reconnu ه. La lettre attendue est ح.'
@@ -28,5 +28,11 @@ export function assessFatiha(text) {
   const madd = count < 2
     ? 'Madd final possiblement écourté'
     : [2, 4, 6].includes(count) ? 'Durée du madd final permise' : 'Durée du madd final incertaine';
-  return `${letter} ${madd} dans الْعَالَمِينَ. Estimation du modèle · ${count} temps. À l’arrêt · 2, 4 ou 6 temps permis.`;
+  return {
+    result: `${letter} ${madd} dans الْعَالَمِينَ. Estimation du modèle · ${count} temps. À l’arrêt · 2, 4 ou 6 temps permis.`,
+    notes: [
+      { word: 1, label: verse[1] === 'ه' ? 'ح attendu · ه reconnu' : 'ح reconnu' },
+      { word: 4, label: `Madd · ${count} temps` },
+    ],
+  };
 }

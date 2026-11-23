@@ -77,11 +77,11 @@ test('prononciation 1:2 · décodage CTC, variantes permises et abstention', () 
   const { ayahs } = JSON.parse(readFileSync(new URL('../node_modules/@tilawa/core/assets/ref-v2.json', import.meta.url)));
   const reference = ayahs.find(v => v.s === 1 && v.a === 2).p;
   for (const beats of [2, 4, 6]) {
-    assert.match(assessFatiha(reference.replace('ۦۦ', 'ۦ'.repeat(beats))), /Durée du madd final permise/);
+    assert.match(assessFatiha(reference.replace('ۦۦ', 'ۦ'.repeat(beats))).result, /Durée du madd final permise/);
   }
-  assert.match(assessFatiha(reference.replace('ح', 'ه')), /reconnu ه/);
-  assert.match(assessFatiha(reference.replace('ۦۦ', 'ۦ')), /possiblement écourté/);
-  assert.match(assessFatiha(reference.replace('ۦۦ', 'ۦۦۦ')), /madd final incertaine/);
-  assert.match(assessFatiha(reference.slice(0, 8)), /Prise incertaine/);
-  assert.match(assessFatiha(''), /Prise incertaine/);
+  assert.match(assessFatiha(reference.replace('ح', 'ه')).result, /reconnu ه/);
+  assert.match(assessFatiha(reference.replace('ۦۦ', 'ۦ')).result, /possiblement écourté/);
+  assert.match(assessFatiha(reference.replace('ۦۦ', 'ۦۦۦ')).result, /madd final incertaine/);
+  assert.match(assessFatiha(reference.slice(0, 8)).result, /Prise incertaine/);
+  assert.match(assessFatiha('').result, /Prise incertaine/);
 });

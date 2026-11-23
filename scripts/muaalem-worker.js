@@ -57,7 +57,7 @@ self.onmessage = async ({ data: samples }) => {
     const { phonemes } = await session.run(feeds, ['phonemes']);
     const result = assessFatiha(decodePhonemes(phonemes.data));
     await session.release();
-    self.postMessage({ result });
+    self.postMessage(result);
   } catch (error) {
     console.warn('HelloArabic — Muaalem', error);
     self.postMessage({ error: 'Analyse indisponible. Vérifie la connexion, le stockage et la mémoire de cet appareil.' });

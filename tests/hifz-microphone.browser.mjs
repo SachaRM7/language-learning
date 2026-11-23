@@ -55,12 +55,15 @@ try {
   });
   assert.equal(await page.locator('#hz-word-1-2[data-review-word="confirmed"]').isVisible(), true);
   await page.getByRole('link', { name: /Mot à reprendre/ }).waitFor();
+  assert.equal(await page.locator('#hz-word-1-2 + .practice-note').textContent(), 'Mot à reprendre');
   await finish.click();
-  await recite.waitFor();
+  const retry = page.getByRole('button', { name: 'Réessayer' });
+  await retry.waitFor();
   assert.match(await page.locator('hifz-microphone [role=status]').innerText(), /1 écart/);
   assert.equal(await audioMode(), 'playback');
-  await recite.click();
+  await retry.click();
   await finish.waitFor();
+  assert.equal(await page.locator('.practice-note').count(), 0);
   await page.getByRole('button', { name: 'Continuer au verset 4' }).click();
   await page.waitForSelector('#hz-next');
   assert.equal(await audioMode(), 'playback');
@@ -85,22 +88,44 @@ try {
       }
       postMessage(samples) {
         if (!(samples instanceof Float32Array) || samples.length < 8000) throw new Error('PCM manquant');
-        this.onmessage({ data: { result: 'Bilan de prononciation simulé' } });
+        this.onmessage({ data: { result: 'Bilan de prononciation simulé', notes: [{ word: 4, label: 'Madd · 4 temps' }] } });
       }
       terminate() {}
     };
   });
+  const hide = page.getByRole('button', { name: 'Masquer' });
+  await hide.click();
+  assert.equal(await page.locator('#practice-text').isVisible(), false);
+  await page.getByRole('button', { name: 'Afficher' }).click();
+  await page.evaluate(() => {
+    window.referencePlayed = [];
+    HTMLMediaElement.prototype.play = function () {
+      window.referencePlayed.push(this.src);
+      return Promise.resolve();
+    };
+  });
+  const listen = page.getByRole('button', { name: 'Écouter le verset' });
+  await listen.click();
+  await page.getByRole('button', { name: 'Arrêter l’écoute' }).waitFor();
+  assert.match(await page.evaluate(() => window.referencePlayed.at(-1)), /001002/);
   for (const enabled of [false, true]) {
     await option.setChecked(enabled);
-    await recite.click();
+    await (enabled ? retry : recite).click();
     await finish.waitFor();
+    assert.equal(await page.locator('[data-replay]').isDisabled(), true);
     assert.equal(await option.isDisabled(), true);
     if (enabled) await page.waitForFunction(() => document.querySelector('hifz-microphone').take.length >= 16000);
     await finish.click();
-    await recite.waitFor();
+    await retry.waitFor();
     assert.equal(await page.evaluate(() => window.analysisRuns), Number(enabled));
   }
   await page.getByText('Bilan de prononciation simulé').waitFor();
+  assert.equal(await page.locator('#hz-word-2-4 + .practice-note').textContent(), 'Madd · 4 temps');
+  await page.getByRole('button', { name: 'Réécouter le verset' }).click();
+  await page.getByRole('button', { name: 'Arrêter l’écoute' }).click();
+  await retry.click();
+  await finish.waitFor();
+  assert.equal(await page.locator('[data-note]').count(), 0);
   assert.deepEqual(errors, []);
   console.log('Récitation An-Nas vérifiée avec un micro virtuel.');
 } finally { await browser.close(); }
