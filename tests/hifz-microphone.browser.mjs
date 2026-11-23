@@ -34,7 +34,7 @@ try {
     document.querySelector('hifz-microphone').engine = {
       listen: startMicrophone,
       startMemorization: () => ({
-        state: 'active', subscribe() {}, pushAudio: async () => [], end: async () => [], dispose() {},
+        state: 'active', subscribe(fn) { window.emitRecitation = fn; }, pushAudio: async () => [], end: async () => [], dispose() {},
       }),
       dispose() {},
     };
@@ -48,8 +48,16 @@ try {
   await finish.waitFor();
   assert.equal(await audioMode(), 'play-and-record');
   await page.waitForFunction(() => document.querySelector('hifz-microphone meter').value > -48);
+  await page.evaluate(() => {
+    const location = { surah: 114, ayah: 1, word: 2 };
+    window.emitRecitation({ type: 'position', state: 'locked', observed: [{ word: location }] });
+    window.emitRecitation({ type: 'checker', id: 'mistake', state: 'confirmed', errorClass: 'wrong_word', location });
+  });
+  assert.equal(await page.locator('#hz-word-1-2[data-review-word="confirmed"]').isVisible(), true);
+  await page.getByRole('link', { name: /Mot à reprendre/ }).waitFor();
   await finish.click();
   await recite.waitFor();
+  assert.match(await page.locator('hifz-microphone [role=status]').innerText(), /1 écart/);
   assert.equal(await audioMode(), 'playback');
   await recite.click();
   await finish.waitFor();

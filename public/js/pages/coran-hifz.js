@@ -265,7 +265,8 @@ export async function renderPassage({ n, from, to }) {
     <button class="back-btn icon-btn--ghost" data-navigate="${back}" aria-label="Retour à la sourate">${icon('x')}</button>
     <h1>${title}</h1><p>${escapeHtml(surah.name)} · versets ${first} à ${last}</p>
     <hifz-microphone data-surah="${id}" data-from="${first}" data-to="${last}"></hifz-microphone>
-    <details class="hz-passage"><summary>Afficher le texte</summary>
+    <details class="hz-passage" open><summary>Masquer le texte</summary>
+      <p class="hz-key">● Mot repéré · ≋ À reprendre · ? À vérifier</p>
       ${verses.map(v => `<p class="hz-ar" lang="ar" dir="rtl">${v.w.flatMap(w => w.t.split(/\s+(?=\p{Letter})/u)).map((word, i) => `<span id="hz-word-${v.n}-${i + 1}">${escapeHtml(word)}</span>`).join(' ')} <small>${v.n}</small></p>`).join('')}
     </details>
     <button class="btn btn--secondary" data-navigate="${next ? `${back}/hifz/${next.n}` : back}">${next ? `Continuer au verset ${next.n}` : 'Retour à la sourate'}</button>

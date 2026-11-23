@@ -507,3 +507,19 @@
 .hz-passage .hz-ar { padding: .5rem; }
 .hz-passage [aria-current="true"] { background: var(--primary); color: var(--bg); border-radius: .2em; }
 .hz-passage [data-review-word] { text-decoration: underline wavy; }
+
+hifz-microphone, .hz-passage {
+  display: block; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-lg); padding: var(--sp-4);
+}
+hifz-microphone progress, hifz-microphone meter { width: 100%; accent-color: var(--primary); }
+hifz-microphone progress { height: .45rem; }
+hifz-microphone small, .hz-key { font-size: var(--fs-xs); color: var(--ink-2); }
+hifz-microphone ul:empty { display: none; }
+hifz-microphone li { padding-block: .4rem; }
+.hz-passage summary { font-weight: 700; }
+.hz-passage .hz-ar { margin-top: var(--sp-2); border-top: 1px solid var(--line); font-size: 1.85rem; }
+.hz-passage [data-located] { color: var(--primary); border-bottom: 2px solid; }
+.hz-passage [aria-current="true"] { color: var(--bg); outline: 2px solid var(--primary); }
+.hz-passage [data-review-word] { text-decoration: underline dotted; }
+.hz-passage [data-review-word="confirmed"] { color: var(--ink); background: var(--surface-2); text-decoration: underline wavy #d57845; }
