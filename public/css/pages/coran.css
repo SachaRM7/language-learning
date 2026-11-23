@@ -519,7 +519,7 @@ hifz-microphone ul:empty { display: none; }
 hifz-microphone li { padding-block: .4rem; }
 .hz-passage summary { font-weight: 700; }
 .hz-passage .hz-ar { margin-top: var(--sp-2); border-top: 1px solid var(--line); font-size: 1.85rem; }
-.hz-passage [data-located] { color: var(--primary); border-bottom: 2px solid; }
-.hz-passage [aria-current="true"] { color: var(--bg); outline: 2px solid var(--primary); }
+.hz-passage [data-located] { border-bottom: 1px solid var(--ink-3); }
+.hz-passage [aria-current="true"] { color: var(--ink); background: var(--surface-2); outline: 2px solid var(--ink-2); }
 .hz-passage [data-review-word] { text-decoration: underline dotted; }
-.hz-passage [data-review-word="confirmed"] { color: var(--ink); background: var(--surface-2); text-decoration: underline wavy #d57845; }
+.hz-passage [data-review-word="confirmed"] { color: var(--ink); background: rgba(216, 93, 60, .24); outline: 2px solid #d57845; text-decoration: underline wavy #d57845; }

@@ -39,6 +39,7 @@ class HifzMicrophone extends HTMLElement {
     try {
       await mic?.stop();
     } finally {
+      this.current?.removeAttribute('aria-current');
       this.querySelector("label").hidden = true;
       if (this.controller.signal.aborted) await this.engine?.dispose();
     }
@@ -57,7 +58,7 @@ class HifzMicrophone extends HTMLElement {
         this.querySelector('progress').value = this.located.size;
       }
       this.querySelector('[data-progress]').textContent = `Verset ${ref.ayah} · mot ${ref.word} · ${this.current?.textContent || ''}`;
-      this.status.textContent = 'Récitation suivie.';
+      this.status.textContent = 'Position repérée · vérification des mots en cours.';
     } else {
       this.current?.removeAttribute('aria-current');
       this.querySelector('[data-progress]').textContent = '';
@@ -94,9 +95,16 @@ class HifzMicrophone extends HTMLElement {
     try {
       if (this.mic) {
         await this.finish();
+        // end() a maintenant vidé le décodeur. Une hypothèse restée ouverte
+        // ne doit pas être présentée comme une faute dans le bilan.
+        for (const [id, issue] of this.issues) {
+          if (issue.state === 'suspected') this.issues.set(id, { ...issue, state: 'uncertain' });
+        }
+        this.updateIssues();
         this.session.dispose();
+        this.querySelector('[data-progress]').textContent = '';
         const confirmed = [...this.issues.values()].filter(issue => issue.state === 'confirmed').length;
-        const result = confirmed ? `${confirmed} écart(s) à reprendre.` : 'Aucun écart de mots confirmé.';
+        const result = confirmed ? `${confirmed} écart${confirmed > 1 ? 's' : ''} à reprendre.` : 'Aucun écart de mots confirmé.';
         this.status.textContent = this.tracked || this.issues.size
           ? `${this.located.size} / ${this.querySelector('progress').max} mots repérés. ${result}`
           : this.heard ? 'Voix entendue. Passage trop incertain pour un bilan.' : 'Aucune voix détectée.';
