@@ -12,9 +12,12 @@
     "test:motion": "node tests/motion.browser.mjs"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^1.8.0"
+    "@anthropic-ai/sdk": "^1.8.0",
+    "@tilawa/core": "1.0.0-rc.1",
+    "onnxruntime-web": "1.30.0"
   },
   "devDependencies": {
+    "esbuild": "0.28.2",
     "playwright": "^1.65.1",
     "wrangler": "^4.163.0"
   }

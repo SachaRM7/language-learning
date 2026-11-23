@@ -4,9 +4,10 @@
 //   - code (HTML/CSS/JS) et données JSON : network-first → les mises à jour arrivent immédiatement, cache en secours hors-ligne
 //   - images, polices, audio : stale-while-revalidate
 
-const CACHE_VERSION = 'v2.10.0';
+const CACHE_VERSION = 'v2.11.0';
 const CACHE_NAME = `helloarabic-${CACHE_VERSION}`;
 
+const BUILD_ASSETS = []; // Complété par embed-assets.mjs avec les dépendances du shell.
 const PRECACHE_ASSETS = [
   './',
   'index.html',
@@ -59,7 +60,7 @@ const PRECACHE_ASSETS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => Promise.allSettled(PRECACHE_ASSETS.map((a) => cache.add(a))))
+      .then((cache) => Promise.allSettled(Array.from(new Set([...BUILD_ASSETS, ...PRECACHE_ASSETS]), a => cache.add(a))))
   );
   self.skipWaiting();
 });
@@ -79,6 +80,10 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
 
   const isSameOrigin = url.origin === self.location.origin;
+  if (url.origin === 'https://tilawa.dev' && url.pathname.startsWith('/v1/runtime/ort/1.30.0/')) {
+    event.respondWith(cachedRuntime(request));
+    return;
+  }
   if (isSameOrigin && url.pathname.includes('/api/')) return; // jamais de cache pour l'API
   const isFont = url.hostname.endsWith('fonts.googleapis.com') || url.hostname.endsWith('fonts.gstatic.com');
   if (!isSameOrigin && !isFont) return;
@@ -87,11 +92,22 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(isMedia ? staleWhileRevalidate(request) : networkFirst(request));
 });
 
+async function cachedRuntime(request) {
+  const cache = await caches.open('tilawa-runtime-v1');
+  const cached = await cache.match(request);
+  if (cached) return cached;
+  const response = await fetch(request);
+  if (response.ok) await cache.put(request, response.clone()).catch(() => {});
+  return response;
+}
+
 async function networkFirst(request) {
   const cache = await caches.open(CACHE_NAME);
   try {
     const response = await fetch(request);
-    if (response.ok) cache.put(request, response.clone());
+    if (response.ok) {
+      await cache.put(request, response.clone()).catch(() => {});
+    }
     return response;
   } catch {
     const cached = await cache.match(request, { ignoreSearch: true });
