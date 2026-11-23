@@ -1,6 +1,7 @@
 // js/pages/coran-hifz.js — Mémorisation verset par verset : écouter → masquer → reconstituer.
 // Valider un verset l'envoie en murājaʿa ET ajoute ses mots au vocabulaire en révision.
 
+import { bindRecitation } from '../quran/live-recitation.js';
 import { store } from '../store.js';
 import { navigate } from '../router.js';
 import { escapeHtml, shuffle } from '../utils.js';
@@ -127,10 +128,28 @@ function stepMask() {
       <button class="btn btn--secondary" id="hz-all" ${all ? 'disabled' : ''}>Tout</button>
     </div>
     <div class="hz-cta">
+      <button class="btn btn--tonal btn--block" id="hz-recite">Réciter avec le micro</button>
       <button class="btn btn--primary btn--block btn--lg" id="hz-next" ${all ? '' : 'disabled'}>Reconstituer le verset ${icon('arrow-right')}</button>
       <button class="btn btn--ghost btn--block" id="hz-back">${icon('volume-2')} Réécouter</button>
     </div>`);
   bindShell();
+  document.getElementById('hz-recite').onclick = () => {
+    stopAudio();
+    $app().innerHTML = shell(`
+      <div class="hz-card">
+        <p class="hz-ar" lang="ar">${verseWords(v, { isHidden: () => true, tappable: false })}</p>
+        <p id="hz-rec-status" role="status">Préparation du suivi sur cet appareil…</p>
+        <ul id="hz-rec-errors" aria-live="polite"></ul>
+      </div>
+      <div class="hz-cta">
+        <button id="hz-rec-action" class="btn btn--primary btn--block" disabled>Activer le micro</button>
+        <button id="hz-rec-return" class="btn btn--ghost btn--block">Retour à l’exercice</button>
+      </div>
+      <p class="hz-help">Ta voix reste sur cet appareil. Au premier usage, le modèle léger (25 Mo) et son moteur sont téléchargés.
+        <a href="https://github.com/yazinsai/tilawa/blob/main/docs/model-card.md" target="_blank" rel="noopener">Modèle Tilawa · CC BY 4.0</a></p>`);
+    bindShell();
+    bindRecitation(H.surah.id, v, stepMask);
+  };
   document.querySelectorAll('[data-maskdir]').forEach(b => b.addEventListener('click', () => {
     try { localStorage.setItem('ha-hifz-mask', b.dataset.maskdir); } catch { /* stockage indisponible */ }
     haptic();

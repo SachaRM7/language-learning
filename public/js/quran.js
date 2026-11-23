@@ -32,8 +32,20 @@ export async function loadLexicon() {
 
 export async function loadSurah(n) {
   if (!_surahs.has(n)) {
-    const s = await fetch(`/api/quran/surah?n=${n}`).then(r => { if (!r.ok) throw new Error('surah'); return r.json(); });
-    _surahs.set(n, s);
+    const url = `/api/quran/surah?n=${n}`;
+    const cache = await globalThis.caches?.open('quran-surahs-v1').catch(() => null);
+    let response;
+    try { response = await fetch(url); }
+    catch (err) {
+      response = await cache?.match(url);
+      if (!response) throw err;
+    }
+    if (!response.ok) throw new Error('surah');
+    const copy = cache && response.clone();
+    const surah = await response.json();
+    if (surah.id !== Number(n)) throw new Error('surah');
+    if (copy) await cache.put(url, copy).catch(() => {});
+    _surahs.set(n, surah);
   }
   return _surahs.get(n);
 }
