@@ -1,6 +1,7 @@
 // js/pages/coran-hifz.js — Mémorisation verset par verset : écouter → masquer → reconstituer.
 // Valider un verset l'envoie en murājaʿa ET ajoute ses mots au vocabulaire en révision.
 
+import '../quran/hifz-microphone.js';
 import { store } from '../store.js';
 import { navigate } from '../router.js';
 import { escapeHtml, shuffle } from '../utils.js';
@@ -121,6 +122,7 @@ function stepMask() {
     <div class="hz-card">
       <p class="hz-ar" lang="ar">${verseWords(v, { isHidden })}</p>
     </div>
+    <hifz-microphone data-surah="${H.surah.id}" data-ayah="${v.n}"></hifz-microphone>
     <div class="hz-mask-actions">
       <button class="btn btn--secondary" id="hz-unhide" ${H.hidden ? '' : 'disabled'}>${icon('eye')} Moins</button>
       <button class="btn btn--tonal" id="hz-hide" ${all ? 'disabled' : ''}>${icon('eye-off')} Masquer</button>
