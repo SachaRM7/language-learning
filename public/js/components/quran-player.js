@@ -235,6 +235,7 @@ export function createSurahPlayer(surah, { onDisplayChange = () => {}, container
       btn.setAttribute('aria-label', on ? 'Pause' : 'Lecture');
       btn.classList.toggle('is-playing', on);
     }
+    if (on) document.getElementById('qp-bar')?.classList.add('has-played');
     container()?.classList.toggle('is-reciting', on);
     const listen = document.getElementById('qs-listen');
     if (listen) listen.innerHTML = on ? `${icon('pause')} Pause` : `${icon('headphones')} Écouter`;
