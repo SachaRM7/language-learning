@@ -482,3 +482,8 @@
 .q-def__nuance b { color: var(--primary-ink); margin-right: 4px; }
 .q-def__cite { margin: 0; padding-left: 10px; border-left: 3px solid var(--gold); color: var(--ink-3); font-style: italic; font-size: var(--fs-xs); }
 .q-def__cite cite { display: block; font-style: normal; font-size: var(--fs-2xs); margin-top: 2px; }
+
+.hz-passage summary { cursor: pointer; padding: .75rem; }
+.hz-passage .hz-ar { padding: .5rem; }
+.hz-passage [aria-current="true"] { background: var(--primary); color: var(--bg); border-radius: .2em; }
+.hz-passage [data-review-word] { text-decoration: underline wavy; }

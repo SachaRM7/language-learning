@@ -1,6 +1,6 @@
 // Tilawa utilise un AudioWorklet. Si le navigateur ouvre le micro mais refuse
 // ce graphe audio, on envoie les échantillons du même micro à la même session.
-export async function listenToVerse(engine, session, prepared, signal) {
+export async function listenToVerse(engine, session, prepared, signal, onLevel) {
   const stream = await prepared.stream;
   signal.throwIfAborted();
   const context = prepared.context;
@@ -9,7 +9,7 @@ export async function listenToVerse(engine, session, prepared, signal) {
 
   try {
     // L'appelant reste propriétaire du micro en cas d'échec du worklet.
-    return await engine.listen(session, { prepared: { ...prepared, release() {} } });
+    return await engine.listen(session, { onLevel, prepared: { ...prepared, release() {} } });
   } catch (error) {
     signal.throwIfAborted();
     if (!stream.active || session.state !== 'active' || !context.createScriptProcessor) throw error;
@@ -22,6 +22,9 @@ export async function listenToVerse(engine, session, prepared, signal) {
   processor.onaudioprocess = event => {
     if (failure || signal.aborted) return;
     const samples = event.inputBuffer.getChannelData(0).slice();
+    let energy = 0;
+    for (const sample of samples) energy += sample * sample;
+    onLevel(10 * Math.log10(energy / samples.length + 1e-12));
     pending = session.pushAudio(samples, context.sampleRate).catch(error => { failure = error; });
   };
   source.connect(processor);

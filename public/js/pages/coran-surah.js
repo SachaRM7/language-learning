@@ -63,6 +63,8 @@ export async function renderCoranSurah({ n, v }) {
 function render() {
   const { surah, memorized, known } = S;
   const mem = surah.verses.filter(v => memorized.has(`${surah.id}:${v.n}`)).length;
+  const lastGroup = surah.verses.findLast(v => v.n % 3 === 0 &&
+    [v.n - 2, v.n - 1, v.n].every(n => memorized.has(`${surah.id}:${n}`)));
   const comp = comprehension(surah, known);
   const place = surah.place === 'makkah' ? 'Mecquoise' : 'Médinoise';
 
@@ -80,6 +82,8 @@ function render() {
         </div>
         <div class="qs-hero__actions">
           <button class="btn btn--primary btn--lg" data-navigate="/coran/${surah.id}/hifz">${icon('play')} ${mem === surah.verses.length ? 'Revoir' : mem ? 'Continuer' : 'Mémoriser'}</button>
+          ${mem === surah.verses.length ? `<button class="btn btn--secondary btn--lg" data-navigate="/coran/${surah.id}/reciter/1/${mem}">Réciter toute la sourate</button>`
+            : lastGroup ? `<button class="btn btn--secondary btn--lg" data-navigate="/coran/${surah.id}/reciter/${lastGroup.n - 2}/${lastGroup.n}">Réciter les versets ${lastGroup.n - 2} à ${lastGroup.n}</button>` : ''}
           <button class="btn btn--secondary btn--lg" id="qs-listen">${icon('headphones')} Écouter</button>
         </div>
       </section>

@@ -34,7 +34,7 @@ import { renderParcoursLesson, renderParcoursReview } from './pages/parcours-les
 import { renderTutor } from './pages/tuteur.js';
 import { renderCoranHome } from './pages/coran-home.js';
 import { renderCoranSurah } from './pages/coran-surah.js';
-import { renderCoranHifz } from './pages/coran-hifz.js';
+import { renderCoranHifz, renderPassage } from './pages/coran-hifz.js';
 import { renderCoranReview } from './pages/coran-review.js';
 import { renderTajwidHome } from './pages/tajwid-home.js';
 import { renderTajwidLesson } from './pages/tajwid-lesson.js';
@@ -94,6 +94,7 @@ async function init() {
   route('/coran/muraja', renderCoranReview);
   route('/coran/:n', renderCoranSurah);
   route('/coran/:n/verset/:v', renderCoranSurah);
+  route('/coran/:n/reciter/:from/:to', renderPassage);
   route('/coran/:n/hifz', renderCoranHifz);
   route('/coran/:n/hifz/:v', renderCoranHifz);
 

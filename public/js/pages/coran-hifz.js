@@ -122,7 +122,6 @@ function stepMask() {
     <div class="hz-card">
       <p class="hz-ar" lang="ar">${verseWords(v, { isHidden })}</p>
     </div>
-    <hifz-microphone data-surah="${H.surah.id}" data-ayah="${v.n}"></hifz-microphone>
     <div class="hz-mask-actions">
       <button class="btn btn--secondary" id="hz-unhide" ${H.hidden ? '' : 'disabled'}>${icon('eye')} Moins</button>
       <button class="btn btn--tonal" id="hz-hide" ${all ? 'disabled' : ''}>${icon('eye-off')} Masquer</button>
@@ -210,6 +209,9 @@ async function validate() {
 
   const next = H.surah.verses.find(x => !H.memorized.has(`${H.surah.id}:${x.n}`));
   const surahDone = !next;
+  const from = surahDone ? 1 : 1 + 3 * Math.floor((v.n - 1) / 3);
+  const to = surahDone ? H.surah.verses.length : from + 2;
+  const ready = surahDone || [from, from + 1, to].every(n => H.memorized.has(`${H.surah.id}:${n}`));
   $app().innerHTML = shell(`
     <div class="result hz-result">
       <div class="result__emoji">${surahDone ? '🏆' : '✨'}</div>
@@ -224,6 +226,7 @@ async function validate() {
         <p class="hz-fr">${escapeHtml(v.fr)}</p>
       </div>
       <div class="result__actions">
+        ${ready ? `<button class="btn btn--primary btn--block" data-navigate="/coran/${H.surah.id}/reciter/${from}/${to}">${surahDone ? 'Réciter toute la sourate' : `Réciter les versets ${from} à ${to}`}</button>` : ''}
         ${next ? `<button class="btn btn--primary btn--block btn--lg" id="hz-continue">Verset ${next.n} ${icon('arrow-right')}</button>` : ''}
         <button class="btn ${next ? 'btn--ghost' : 'btn--primary'} btn--block" data-navigate="/coran/${H.surah.id}">${next ? 'Faire une pause' : 'Retour à la sourate'}</button>
       </div>
@@ -242,4 +245,31 @@ function bindWordTaps() {
   document.querySelectorAll('.hz-w:not(.is-hidden)').forEach(b => b.addEventListener('click', () => {
     openWordSheet({ surahId: H.surah.id, verse: v, j: Number(b.dataset.j) });
   }));
+}
+
+export async function renderPassage({ n, from, to }) {
+  const id = Number(n);
+  const first = Number(from);
+  const last = Number(to);
+  const back = `/coran/${id}`;
+  let surah;
+  try { surah = await loadSurah(id); } catch { navigate('/coran'); return; }
+  const memorized = await memorizedVerses();
+  const verses = surah.verses.filter(v => v.n >= first && v.n <= last);
+  if (!verses.length || verses[0].n !== first || verses.at(-1).n !== last ||
+      verses.some(v => !memorized.has(`${id}:${v.n}`))) { navigate(back); return; }
+  const next = surah.verses.find(v => !memorized.has(`${id}:${v.n}`));
+  const title = first === 1 && last === surah.verses.length ? 'Réciter toute la sourate' : `Réciter les versets ${first} à ${last}`;
+  stopAudio();
+  $app().innerHTML = `<main class="hz hz-body">
+    <button class="back-btn icon-btn--ghost" data-navigate="${back}" aria-label="Retour à la sourate">${icon('x')}</button>
+    <h1>${title}</h1><p>${escapeHtml(surah.name)} · versets ${first} à ${last}</p>
+    <hifz-microphone data-surah="${id}" data-from="${first}" data-to="${last}"></hifz-microphone>
+    <details class="hz-passage"><summary>Afficher le texte</summary>
+      ${verses.map(v => `<p class="hz-ar" lang="ar" dir="rtl">${v.w.flatMap(w => w.t.split(/\s+(?=\p{Letter})/u)).map((word, i) => `<span id="hz-word-${v.n}-${i + 1}">${escapeHtml(word)}</span>`).join(' ')} <small>${v.n}</small></p>`).join('')}
+    </details>
+    <button class="btn btn--secondary" data-navigate="${next ? `${back}/hifz/${next.n}` : back}">${next ? `Continuer au verset ${next.n}` : 'Retour à la sourate'}</button>
+  </main>`;
+  const details = $app().querySelector('details');
+  details.ontoggle = () => { details.querySelector('summary').textContent = details.open ? 'Masquer le texte' : 'Afficher le texte'; };
 }
