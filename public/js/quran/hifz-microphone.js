@@ -131,7 +131,8 @@ class HifzMicrophone extends HTMLElement {
   }
 
   updatePosition(event) {
-    const ref = event.observed?.[0]?.word;
+    const candidate = event.observed?.[0];
+    const ref = candidate?.word;
     if (event.state === 'locked' && this.inPassage(ref)) {
       this.tracked = true;
       this.current?.removeAttribute('aria-current');
@@ -144,8 +145,21 @@ class HifzMicrophone extends HTMLElement {
           const frame = scroll.getBoundingClientRect();
           if (word.bottom > frame.bottom || word.top < frame.top) scroll.scrollTop += word.top - frame.top - 12;
         }
-        this.current.dataset.located = '';
-        this.located.add(this.current);
+        // Le premier verrouillage peut couvrir plusieurs mots déjà récités.
+        const start = candidate.span?.start;
+        const endIndex = this.passageWords.indexOf(this.current);
+        let startIndex = endIndex;
+        if (start?.surah === ref.surah) {
+          const startWord = document.getElementById(`hz-word-${start.ayah}-${start.word}`);
+          const index = start.ayah < Number(this.dataset.from) ? 0 : this.passageWords.indexOf(startWord);
+          if (index >= 0 && index <= endIndex) startIndex = index;
+        }
+        for (let i = startIndex; i <= endIndex; i++) {
+          const word = this.passageWords[i];
+          if (this.located.has(word)) continue;
+          word.dataset.located = '';
+          this.located.add(word);
+        }
         this.querySelector('progress').value = this.located.size;
         this.querySelector('[data-count]').textContent = `${this.located.size} / ${this.querySelector('progress').max}`;
       }
@@ -246,7 +260,8 @@ class HifzMicrophone extends HTMLElement {
         this.session = this.engine.startMemorization({
           surah: Number(this.dataset.surah), fromAyah: Number(this.dataset.from), toAyah: Number(this.dataset.to),
         }, { confirm: { after: 'next-word' } });
-        const words = this.closest('main').querySelectorAll('.hz-passage [id^="hz-word-"]');
+        const words = Array.from(this.closest('main').querySelectorAll('.hz-passage [id^="hz-word-"]'));
+        this.passageWords = words;
         this.located = new Set();
         for (const word of words) delete word.dataset.located;
         this.querySelector('progress').max = words.length || 1;
