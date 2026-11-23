@@ -507,3 +507,19 @@
 .hz-passage .hz-ar { padding: .5rem; }
 .hz-passage [aria-current="true"] { background: var(--primary); color: var(--bg); border-radius: .2em; }
 .hz-passage [data-review-word] { text-decoration: underline wavy; }
+
+@media (max-width: 1023px) {
+  .qs-page { padding-bottom: calc(var(--nav-h) + var(--safe-b) + var(--sp-6)); }
+  .qs-hero .qp-bar {
+    display: none;
+    position: static;
+    transform: none;
+    width: 100%;
+    margin-top: var(--sp-2);
+    background: var(--surface);
+    box-shadow: none;
+  }
+  .qs-hero .qp-bar.has-played { display: block; }
+  .qp-bar__info { flex-direction: row; justify-content: center; gap: var(--sp-2); }
+  .qp-return { bottom: calc(var(--nav-h) + var(--safe-b) + var(--sp-6)); }
+}

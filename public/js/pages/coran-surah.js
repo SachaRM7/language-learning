@@ -86,6 +86,7 @@ function render() {
             : lastGroup ? `<button class="btn btn--secondary btn--lg" data-navigate="/coran/${surah.id}/reciter/${lastGroup.n - 2}/${lastGroup.n}">Réciter les versets ${lastGroup.n - 2} à ${lastGroup.n}</button>` : ''}
           <button class="btn btn--secondary btn--lg" id="qs-listen">${icon('headphones')} Écouter</button>
         </div>
+        ${S.player.barHtml()}
       </section>
 
       <div class="segmented qs-tabs" role="tablist">
@@ -94,7 +95,6 @@ function render() {
       </div>
       <div id="qs-tab"></div>
     </main>
-    ${S.player.barHtml()}
     ${renderBottomNav('coran')}`;
 
   $app().querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => {
