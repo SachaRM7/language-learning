@@ -1,24 +1,42 @@
 // Démarrer la capture dans le geste utilisateur, avant l’import du moteur.
 export function prepareRecitationMicrophone() {
-  const context = new AudioContext();
-  context.resume().catch(() => {});
+  // unlockAudio() active « playback » sur iOS. WebKit refuse getUserMedia
+  // tant que la session est réservée à la lecture.
+  const audioSession = navigator.audioSession;
+  const previousType = audioSession?.type;
+  let changedType = false;
+  function restoreAudioSession() {
+    if (!changedType) return;
+    changedType = false;
+    if (audioSession.type === 'play-and-record') audioSession.type = previousType;
+  }
+
+  let context;
   let stream;
   try {
+    if (audioSession && previousType !== 'play-and-record' && previousType !== 'auto') {
+      audioSession.type = 'play-and-record';
+      changedType = true;
+    }
+    context = new AudioContext();
+    context.resume().catch(() => {});
     stream = navigator.mediaDevices.getUserMedia({
       audio: { channelCount: 1, echoCancellation: false, noiseSuppression: false, autoGainControl: false },
     });
   } catch (error) {
-    void context.close().catch(() => {});
+    void context?.close().catch(() => {});
+    restoreAudioSession();
     throw error;
   }
   let released = false;
   return {
-    context, stream,
+    context, stream, restoreAudioSession,
     release() {
       if (released) return;
       released = true;
       stream.then(media => media.getTracks().forEach(track => track.stop()), () => {});
       void context.close().catch(() => {});
+      restoreAudioSession();
     },
   };
 }
@@ -32,7 +50,13 @@ export async function listenToVerse(engine, session, prepared, signal, onLevel) 
 
   try {
     // L'appelant reste propriétaire du micro en cas d'échec du worklet.
-    return await engine.listen(session, { onLevel, prepared: { ...prepared, release() {} } });
+    const mic = await engine.listen(session, { onLevel, prepared: { context, stream: prepared.stream, release() {} } });
+    return {
+      stop() {
+        // Tilawa arrête les pistes avant de finaliser la transcription.
+        try { return mic.stop(); } finally { prepared.restoreAudioSession(); }
+      },
+    };
   } catch (error) {
     signal.throwIfAborted();
     if (!stream.active || session.state !== 'active' || !context.createScriptProcessor) throw error;
