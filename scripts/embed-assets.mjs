@@ -7,6 +7,7 @@
 
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative, extname } from 'node:path';
+import { build } from 'esbuild';
 import { createHash } from 'node:crypto';
 
 const ROOT = new URL('../public/', import.meta.url).pathname;
@@ -53,6 +54,16 @@ for (const file of walk(ROOT).sort()) {
     ...(TEXT.has(ext) ? { s: buf.toString('utf8') } : { b: buf.toString('base64') }),
   };
 }
+
+// Le moteur est servi sur demande, indépendamment du démarrage de l'application.
+const tilawa = await build({
+  entryPoints: ['@tilawa/core/web'],
+  bundle: true, format: 'esm', platform: 'browser', minify: true, write: false,
+});
+const sdk = tilawa.outputFiles[0].text;
+assets['/js/vendor/tilawa.js'] = {
+  t: TYPES['.js'], e: createHash('sha1').update(sdk).digest('hex').slice(0, 16), s: sdk,
+};
 
 writeFileSync(OUT, `// Généré par scripts/embed-assets.mjs — ne pas modifier.\nexport const ASSETS = ${JSON.stringify(assets)};\n`);
 console.log(`[embed-assets] ${Object.keys(assets).length} fichiers, ${(bytes / 1024).toFixed(0)} Ko → worker/assets.generated.js`);
