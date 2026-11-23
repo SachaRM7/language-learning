@@ -1,6 +1,8 @@
 // L'élément possède le micro uniquement pendant sa présence dans l'exercice.
 import { stopAudio } from '../components/quran-audio.js';
 
+import { listenToVerse } from './hifz-capture.js';
+
 const labels = {
   wrong_word: 'Mot à reprendre',
   omitted_word: 'Mot manquant',
@@ -85,7 +87,7 @@ class HifzMicrophone extends HTMLElement {
             }));
           }
         });
-        this.mic = await this.engine.listen(this.session, { prepared: this.prepared });
+        this.mic = await listenToVerse(this.engine, this.session, this.prepared, signal);
         this.prepared = null;
         if (signal.aborted) { await this.finish(); return; }
         this.status.textContent = 'Micro actif. Récite le verset.';
@@ -95,9 +97,13 @@ class HifzMicrophone extends HTMLElement {
       this.prepared = null;
       this.session?.dispose();
       this.togglePlayback(true);
+      if (signal.aborted) return;
+      console.warn('HelloArabic — récitation', error);
       this.status.textContent = error.reason === 'denied' || error.name === 'NotAllowedError'
         ? 'Autorise le micro dans ton navigateur pour réciter.'
-        : 'La récitation est indisponible. Vérifie ta connexion et ton micro, puis réessaie.';
+        : this.engine
+          ? `Échec de la récitation (${error.cause?.name || error.name || 'audio'}). Appuie pour réessayer.`
+          : 'Le modèle de récitation n’a pas pu être chargé. Appuie pour réessayer.';
     } finally {
       this.button.textContent = this.mic ? 'Terminer ma récitation' : this.engine ? 'Réciter au micro' : 'Préparer la récitation au micro';
       this.button.disabled = false;
