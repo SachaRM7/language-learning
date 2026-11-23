@@ -48,9 +48,24 @@ try {
   await finish.waitFor();
   assert.equal(await audioMode(), 'play-and-record');
   await page.waitForFunction(() => document.querySelector('hifz-microphone meter').value > -48);
+  const count = page.locator('hifz-microphone [data-count]');
+  const position = (state, fromAyah, fromWord, toAyah, toWord) =>
+    page.evaluate(([state, fromAyah, fromWord, toAyah, toWord]) => {
+      const start = { surah: 114, ayah: fromAyah, word: fromWord };
+      const end = { surah: 114, ayah: toAyah, word: toWord };
+      window.emitRecitation({ type: 'position', state, observed: [{ word: end, span: { start, end } }] });
+    }, [state, fromAyah, fromWord, toAyah, toWord]);
+  await position('acquiring', 1, 1, 1, 3);
+  assert.equal(await count.textContent(), '0 / 8');
+  await position('locked', 1, 1, 1, 4);
+  assert.equal(await count.textContent(), '4 / 8');
+  assert.equal(await page.locator('.practice-verse').first().locator('[data-located]').count(), 4);
+  assert.equal(await page.locator('#hz-word-1-4').getAttribute('aria-current'), 'true');
+  await position('locked', 1, 4, 2, 2);
+  await position('locked', 2, 2, 3, 2);
+  assert.equal(await count.textContent(), '8 / 8');
   await page.evaluate(() => {
     const location = { surah: 114, ayah: 1, word: 2 };
-    window.emitRecitation({ type: 'position', state: 'locked', observed: [{ word: location }] });
     window.emitRecitation({ type: 'checker', id: 'mistake', state: 'confirmed', errorClass: 'wrong_word', location });
   });
   assert.equal(await page.locator('#hz-word-1-2[data-review-word="confirmed"]').isVisible(), true);
@@ -59,10 +74,14 @@ try {
   await finish.click();
   const retry = page.getByRole('button', { name: 'Réessayer' });
   await retry.waitFor();
-  assert.match(await page.locator('hifz-microphone [role=status]').innerText(), /1 écart/);
+  assert.match(await page.locator('hifz-microphone [role=status]').innerText(), /8 \/ 8 mots repérés\. 1 écart/);
   assert.equal(await audioMode(), 'playback');
   await retry.click();
   await finish.waitFor();
+  assert.equal(await count.textContent(), '0 / 8');
+  await position('locked', 1, 3, 1, 4);
+  assert.equal(await count.textContent(), '2 / 8');
+  assert.equal(await page.locator('#hz-word-1-1[data-located], #hz-word-1-2[data-located]').count(), 0);
   assert.equal(await page.locator('.practice-note').count(), 0);
   await page.getByRole('button', { name: 'Continuer au verset 4' }).click();
   await page.waitForSelector('#hz-next');
