@@ -193,6 +193,21 @@ class HifzMicrophone extends HTMLElement {
     }));
   }
 
+  updateWordFeedback(event) {
+    const previous = this.issues.get(event.id);
+    const { ayah, word } = event.location;
+    const target = document.getElementById(`hz-word-${ayah}-${word}`);
+    if (event.state === 'resolved') this.issues.delete(event.id);
+    else this.issues.set(event.id, event);
+    this.updateIssues();
+    if (target?.hasAttribute('data-review-word')) {
+      target.parentElement.querySelector('[data-note="corrected"]')?.remove();
+    } else if (event.state === 'resolved' && previous?.state === 'confirmed' && previous.errorClass === 'wrong_word') {
+      this.addNote(target, 'Mot repris', 'corrected');
+      this.status.textContent = `Mot repris · verset ${ayah}, mot ${word}.`;
+    }
+  }
+
   async activate() {
     this.button.disabled = true;
     this.replay.disabled = true;
@@ -222,7 +237,7 @@ class HifzMicrophone extends HTMLElement {
       } else {
         this.worker?.terminate();
         this.worker = null;
-        this.closest('main').querySelectorAll('[data-note="pronunciation"]').forEach(el => el.remove());
+        this.closest('main').querySelectorAll('[data-note="pronunciation"], [data-note="corrected"]').forEach(el => el.remove());
         const analysis = this.querySelector('[data-analysis]');
         if (analysis) analysis.textContent = '';
         const option = this.querySelector('[data-pronunciation]');
@@ -265,9 +280,7 @@ class HifzMicrophone extends HTMLElement {
             this.updatePosition(event);
           }
           if (event.type === 'checker' && this.inPassage(event.location)) {
-            if (event.state === 'resolved') this.issues.delete(event.id);
-            else this.issues.set(event.id, event);
-            this.updateIssues();
+            this.updateWordFeedback(event);
           }
         });
         const meter = this.querySelector('meter');

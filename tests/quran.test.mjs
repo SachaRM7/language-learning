@@ -1,6 +1,7 @@
 import { test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { createEngine, loadReferenceIndex, MODEL_REGISTRY } from '@tilawa/core';
 import { Messages } from '@anthropic-ai/sdk/resources/beta/messages/messages';
 import { handleQuranFr, handleQuranSurah } from '../worker/quran.js';
 import { decodePhonemes, assessFatiha } from '../public/js/quran/pronunciation.js';
@@ -84,4 +85,39 @@ test('prononciation 1:2 · décodage CTC, variantes permises et abstention', () 
   assert.match(assessFatiha(reference.replace('ۦۦ', 'ۦۦۦ')).result, /madd final incertaine/);
   assert.match(assessFatiha(reference.slice(0, 8)).result, /Prise incertaine/);
   assert.match(assessFatiha('').result, /Prise incertaine/);
+});
+
+test('An-Nas · reprendre le mot confirmé dans la même récitation', () => {
+  const ref = JSON.parse(readFileSync(new URL('../node_modules/@tilawa/core/assets/ref-v2.json', import.meta.url)));
+  const tier = MODEL_REGISTRY.tiers.find(t => t.tier === 'lite');
+  const engine = createEngine({ reference: loadReferenceIndex(ref),
+    model: { manifest: tier.manifest, supported: tier.supported, backend: { name: 'test' } } });
+  const session = engine.startMemorization({ surah: 114, fromAyah: 1, toAyah: 6 }, { confirm: { after: 'next-word' } });
+  const verses = ref.ayahs.filter(v => v.s === 114);
+  const fifth = verses[4];
+  const wrong = fifth.p.slice(0, fifth.o[3]) + 'جُذُۥۥعِ' + fifth.p.slice(fifth.o[4]);
+  let frame = 0;
+  function recite(text, confidence = 0.99) {
+    for (const p of text) {
+      const token = ref.inventory.tokens.indexOf(p) + 1;
+      session.pushEvidence({ inventory: ref.inventory.id, frameMs: 40,
+        phonemes: [{ p, start: frame, end: frame + 1, conf: confidence }],
+        posteriors: { k: 2, startFrame: frame, nFrames: 2, ids: [token, 0, 0, token], probs: [.999, .001, .99, .01] } });
+      frame += 2;
+    }
+  }
+  const events = [];
+  session.subscribe(e => { if (e.type === 'checker') events.push(e); });
+  recite(verses.slice(0, 4).map(v => v.p).join('') + wrong + verses[5].p);
+  const mistake = session.mistakes().find(e => e.errorClass === 'wrong_word' && e.location.ayah === 5 && e.location.word === 4);
+  assert.ok(mistake);
+  recite(wrong + verses[5].p);
+  assert.ok(session.mistakes().some(e => e.id === mistake.id));
+  recite(fifth.p + verses[5].p, 0.3);
+  assert.ok(session.mistakes().some(e => e.id === mistake.id));
+  recite(fifth.p + verses[5].p);
+  session.endEvidence();
+  assert.ok(events.some(e => e.id === mistake.id && e.state === 'resolved'));
+  assert.ok(!session.mistakes().some(e => e.id === mistake.id));
+  session.dispose();
 });
