@@ -64,6 +64,43 @@ try {
   await page.getByRole('button', { name: 'Continuer au verset 4' }).click();
   await page.waitForSelector('#hz-next');
   assert.equal(await audioMode(), 'playback');
+  await page.goto('http://localhost:8787/#/coran/1/hifz/2');
+  await page.getByRole('link', { name: 'Essayer la prononciation du verset' }).click();
+  const option = page.getByLabel('Vérifier ma prononciation');
+  assert.equal(await option.isChecked(), false);
+  await page.evaluate(async () => {
+    const { startMicrophone } = await import('/js/vendor/tilawa.js');
+    document.querySelector('hifz-microphone').engine = {
+      listen: startMicrophone,
+      startMemorization: () => ({
+        state: 'active', subscribe() {}, pushAudio: async () => [], end: async () => [], dispose() {},
+      }),
+      dispose() {},
+    };
+    window.analysisRuns = 0;
+    window.Worker = class {
+      constructor(url) {
+        if (url !== '/js/vendor/muaalem-worker.js') throw new Error('Worker inattendu');
+        window.analysisRuns++;
+      }
+      postMessage(samples) {
+        if (!(samples instanceof Float32Array) || samples.length < 8000) throw new Error('PCM manquant');
+        this.onmessage({ data: { result: 'Bilan de prononciation simulé' } });
+      }
+      terminate() {}
+    };
+  });
+  for (const enabled of [false, true]) {
+    await option.setChecked(enabled);
+    await recite.click();
+    await finish.waitFor();
+    assert.equal(await option.isDisabled(), true);
+    if (enabled) await page.waitForFunction(() => document.querySelector('hifz-microphone').take.length >= 16000);
+    await finish.click();
+    await recite.waitFor();
+    assert.equal(await page.evaluate(() => window.analysisRuns), Number(enabled));
+  }
+  await page.getByText('Bilan de prononciation simulé').waitFor();
   assert.deepEqual(errors, []);
   console.log('Récitation An-Nas vérifiée avec un micro virtuel.');
 } finally { await browser.close(); }

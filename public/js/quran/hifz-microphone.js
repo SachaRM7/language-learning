@@ -1,4 +1,5 @@
 // L'élément possède le micro uniquement pendant sa présence dans l'exercice.
+import { PronunciationTake } from './pronunciation-take.js';
 import { stopAudio } from '../components/quran-audio.js';
 
 import { listenToVerse, prepareRecitationMicrophone } from './hifz-capture.js';
@@ -13,11 +14,15 @@ const labels = {
 class HifzMicrophone extends HTMLElement {
   connectedCallback() {
     this.controller = new AbortController();
+    const pilot = this.hasAttribute('data-pronunciation');
     this.innerHTML = `<button class="btn btn--primary btn--block">Réciter au micro</button>
       <p class="hz-help" role="status">Récite à voix haute pour suivre les mots du passage. Première utilisation · téléchargement de 25 Mo.</p>
       <progress aria-label="Mots repérés" value="0" max="1"></progress><p data-progress></p>
-      <label hidden>Niveau du micro <meter min="-70" max="0" value="-70"></meter></label>
-      <small>Tilawa repère les mots remplacés, ajoutés ou oubliés. La prononciation des lettres et le tajwid ne sont pas évalués.</small>
+      <label data-level hidden>Niveau du micro <meter min="-70" max="0" value="-70"></meter></label>
+      <small>Tilawa repère les mots remplacés, ajoutés ou oubliés.${pilot ? '' : ' La prononciation des lettres et le tajwid ne sont pas évalués.'}</small>
+      ${pilot ? `<label><input type="checkbox" data-pronunciation> Vérifier ma prononciation</label>
+        <small>Essai sur la lettre ح et le madd final. Récite le verset en entier et marque l’arrêt final. Ton enregistrement reste sur cet appareil. Première analyse · téléchargement du modèle de 876 Mo.</small>
+        <p data-analysis aria-live="polite"></p>` : ''}
       <ul aria-live="polite" aria-label="Passages à revoir"></ul>`;
     this.button = this.querySelector('button');
     this.status = this.querySelector('[role=status]');
@@ -29,6 +34,8 @@ class HifzMicrophone extends HTMLElement {
 
   close() {
     this.controller.abort();
+    this.worker?.terminate();
+    this.take = null;
     this.prepared?.release();
     void this.finish().catch(() => {});
   }
@@ -40,8 +47,34 @@ class HifzMicrophone extends HTMLElement {
       await mic?.stop();
     } finally {
       this.current?.removeAttribute('aria-current');
-      this.querySelector("label").hidden = true;
+      this.querySelector('[data-level]').hidden = true;
       if (this.controller.signal.aborted) await this.engine?.dispose();
+    }
+  }
+
+  async analyze(take, signal) {
+    const output = this.querySelector('[data-analysis]');
+    try {
+      const samples = this.heard && await take.samples();
+      if (signal.aborted) return;
+      if (!samples) {
+        output.textContent = 'Prise inutilisable. Récite le verset en moins de 30 secondes.';
+        return;
+      }
+      const worker = new Worker('/js/vendor/muaalem-worker.js', { type: 'module' });
+      this.worker = worker;
+      output.textContent = 'Préparation de l’analyse locale…';
+      worker.onmessage = ({ data }) => {
+        output.textContent = data.status || data.result || data.error;
+        if (!data.status) worker.terminate();
+      };
+      worker.onerror = () => {
+        worker.terminate();
+        output.textContent = 'Analyse indisponible sur cet appareil.';
+      };
+      worker.postMessage(samples, [samples.buffer]);
+    } catch {
+      output.textContent = 'Analyse indisponible sur cet appareil.';
     }
   }
 
@@ -108,7 +141,15 @@ class HifzMicrophone extends HTMLElement {
         this.status.textContent = this.tracked || this.issues.size
           ? `${this.located.size} / ${this.querySelector('progress').max} mots repérés. ${result}`
           : this.heard ? 'Voix entendue. Passage trop incertain pour un bilan.' : 'Aucune voix détectée.';
+        if (this.take) await this.analyze(this.take, signal);
+        this.take = null;
       } else {
+        this.worker?.terminate();
+        const analysis = this.querySelector('[data-analysis]');
+        if (analysis) analysis.textContent = '';
+        const option = this.querySelector('[data-pronunciation]');
+        if (option) option.disabled = true;
+        this.take = option?.checked ? new PronunciationTake() : null;
         stopAudio();
         stage = 'ouverture du micro';
         this.prepared = prepareRecitationMicrophone();
@@ -156,17 +197,17 @@ class HifzMicrophone extends HTMLElement {
         this.mic = await listenToVerse(this.engine, this.session, this.prepared, signal, db => {
           meter.value = db;
           if (db > -48) this.heard = true;
-        });
+        }, this.take);
         this.prepared = null;
         if (signal.aborted) { await this.finish(); return; }
-        this.querySelector('label').hidden = false;
+        this.querySelector('[data-level]').hidden = false;
         this.status.textContent = 'Micro actif. Récite le passage.';
       }
     } catch (error) {
       this.prepared?.release();
       this.prepared = null;
       this.session?.dispose();
-      this.querySelector("label").hidden = true;
+      this.querySelector('[data-level]').hidden = true;
       if (signal.aborted) return;
       console.warn('HelloArabic — récitation', error);
       this.status.textContent = error.reason === 'denied' || error.name === 'NotAllowedError'
@@ -175,6 +216,9 @@ class HifzMicrophone extends HTMLElement {
     } finally {
       this.button.textContent = this.mic ? 'Terminer ma récitation' : 'Réciter au micro';
       this.button.disabled = false;
+      const option = this.querySelector('[data-pronunciation]');
+      if (option) option.disabled = Boolean(this.mic);
+      if (!this.mic) this.take = null;
     }
   }
 }

@@ -43,14 +43,24 @@ export function prepareRecitationMicrophone() {
 
 // Tilawa utilise un AudioWorklet. Si le navigateur ouvre le micro mais refuse
 // ce graphe audio, on envoie les échantillons du même micro à la même session.
-export async function listenToVerse(engine, session, prepared, signal, onLevel) {
+export async function listenToVerse(engine, session, prepared, signal, onLevel, take) {
   const stream = await prepared.stream;
   signal.throwIfAborted();
   const context = prepared.context;
 
+  // Dupliquer uniquement les échantillons de la prise volontaire.
+  const input = take ? {
+    get state() { return session.state; },
+    pushAudio(samples, rate) {
+      take.append(samples, rate);
+      return session.pushAudio(samples, rate);
+    },
+    end: () => session.end(),
+  } : session;
+
   try {
     // L'appelant reste propriétaire du micro en cas d'échec du worklet.
-    const mic = await engine.listen(session, { onLevel, prepared: { context, stream: prepared.stream, release() {} } });
+    const mic = await engine.listen(input, { onLevel, prepared: { context, stream: prepared.stream, release() {} } });
     return {
       stop() {
         // Tilawa arrête les pistes avant de finaliser la transcription.
@@ -72,7 +82,7 @@ export async function listenToVerse(engine, session, prepared, signal, onLevel) 
     let energy = 0;
     for (const sample of samples) energy += sample * sample;
     onLevel(10 * Math.log10(energy / samples.length + 1e-12));
-    pending = session.pushAudio(samples, context.sampleRate).catch(error => { failure = error; });
+    pending = input.pushAudio(samples, context.sampleRate).catch(error => { failure = error; });
   };
   source.connect(processor);
   // Le tampon de sortie reste silencieux.

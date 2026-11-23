@@ -89,6 +89,7 @@ function stepListen() {
       </div>
     </div>
     <div class="hz-cta">
+      ${H.surah.id === 1 && v.n === 2 ? '<a class="btn btn--secondary" href="#/coran/1/reciter/2/2">Essayer la prononciation du verset</a>' : ''}
       <button class="btn btn--primary btn--block btn--lg" id="hz-next">${H.listens >= LISTEN_TARGET ? 'Je l\'ai en tête' : 'Passer à la suite'} ${icon('arrow-right')}</button>
     </div>`);
   bindShell();
@@ -256,15 +257,18 @@ export async function renderPassage({ n, from, to }) {
   try { surah = await loadSurah(id); } catch { navigate('/coran'); return; }
   const memorized = await memorizedVerses();
   const verses = surah.verses.filter(v => v.n >= first && v.n <= last);
+  const pilot = id === 1 && first === 2 && last === 2;
   if (!verses.length || verses[0].n !== first || verses.at(-1).n !== last ||
-      verses.some(v => !memorized.has(`${id}:${v.n}`))) { navigate(back); return; }
+      (!pilot && verses.some(v => !memorized.has(`${id}:${v.n}`)))) { navigate(back); return; }
   const next = surah.verses.find(v => !memorized.has(`${id}:${v.n}`));
-  const title = first === 1 && last === surah.verses.length ? 'Réciter toute la sourate' : `Réciter les versets ${first} à ${last}`;
+  const range = first === last ? `verset ${first}` : `versets ${first} à ${last}`;
+  const title = first === 1 && last === surah.verses.length ? 'Réciter toute la sourate' : `Réciter ${first === last ? 'le' : 'les'} ${range}`;
   stopAudio();
   $app().innerHTML = `<main class="hz hz-body">
     <button class="back-btn icon-btn--ghost" data-navigate="${back}" aria-label="Retour à la sourate">${icon('x')}</button>
-    <h1>${title}</h1><p>${escapeHtml(surah.name)} · versets ${first} à ${last}</p>
-    <hifz-microphone data-surah="${id}" data-from="${first}" data-to="${last}"></hifz-microphone>
+    <h1>${title}</h1><p>${escapeHtml(surah.name)} · ${range}</p>
+    <hifz-microphone ${pilot ? 'data-pronunciation' : ''} data-surah="${id}" data-from="${first}" data-to="${last}"></hifz-microphone>
+    ${!pilot && id === 1 && first <= 2 && last >= 2 ? '<a href="#/coran/1/reciter/2/2">Essayer la prononciation du verset 2</a>' : ''}
     <details class="hz-passage" open><summary>Masquer le texte</summary>
       <p class="hz-key">● Mot repéré · ≋ À reprendre · ? À vérifier</p>
       ${verses.map(v => `<p class="hz-ar" lang="ar" dir="rtl">${v.w.flatMap(w => w.t.split(/\s+(?=\p{Letter})/u)).map((word, i) => `<span id="hz-word-${v.n}-${i + 1}">${escapeHtml(word)}</span>`).join(' ')} <small>${v.n}</small></p>`).join('')}
