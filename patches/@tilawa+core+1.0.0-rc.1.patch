@@ -1,0 +1,74 @@
+diff --git a/node_modules/@tilawa/core/dist/engine/checker.js b/node_modules/@tilawa/core/dist/engine/checker.js
+index c7b8240..7b8b416 100644
+--- a/node_modules/@tilawa/core/dist/engine/checker.js
++++ b/node_modules/@tilawa/core/dist/engine/checker.js
+@@ -295,6 +295,8 @@ export function createChecker(index, options = {}) {
+     const open = new Map();
+     /** Words whose error was confirmed or ended uncertain; never reopened. */
+     const decided = new Set();
++    const confirmedWords = new Map();
++    const rereadThrough = new Map();
+     /** Word spans of already-confirmed skipped_passage warnings, so a broader later realignment does not duplicate them. */
+     const confirmedSkips = [];
+     const overlapsConfirmedSkip = (word, last) => confirmedSkips.some((s) => word <= s.last && s.word <= last);
+@@ -315,6 +317,8 @@ export function createChecker(index, options = {}) {
+             ...(issue.heardUnion ? { observed: issue.heardUnion.observed } : issue.observed !== undefined ? { observed: issue.observed } : {}),
+             confidence: conf,
+         };
++        if (state === "confirmed" && issue.cls === "wrong_word")
++            confirmedWords.set(issue.word, e);
+         emitted.push(e);
+         return e;
+     };
+@@ -2239,7 +2243,7 @@ export function createChecker(index, options = {}) {
+                 observed: phones.join(""), stringPath: true, manner: true,
+             });
+         }
+-        return { issues, lexical: candidates, head, furthest: reached, steps, right, bound: new Set(last.keys()), visits: visits.filter(counts) };
++        return { issues, intact, lexical: candidates, head, furthest: reached, steps, right, bound: new Set(last.keys()), visits: visits.filter(counts) };
+     };
+     /** Matched phonemes on the word after an error, heard after it: the next word has begun. */
+     const onset = (steps, issue) => {
+@@ -2512,7 +2516,32 @@ export function createChecker(index, options = {}) {
+             else
+                 o.issue = now;
+         }
++        // A location alone cannot resolve a confirmed substitution. Require a later
++        // complete lexical match, with clear audio aligned to that very word.
++        if (confirmedWords.size && trackerLocked && judged) {
++            for (const v of judged.intact) {
++                const prior = confirmedWords.get(v.word);
++                if (!prior || heldSlot(v.word) || obs[v.obsFrom].start * frameMs < prior.timeMs)
++                    continue;
++                const phones = obs.slice(v.obsFrom, v.obsTo);
++                const confidence = phones.reduce((sum, p) => sum + p.conf, 0) / phones.length;
++                const currentIssue = issues.get(v.word);
++                if (confidence < minConfidence || phones.some(p => p.junk) ||
++                    (currentIssue && currentIssue.obsTo > v.obsFrom && currentIssue.obsFrom < v.obsTo))
++                    continue;
++                const resolved = { ...prior, state: "resolved", timeMs: nowMs, confidence,
++                    observed: phones.map(p => p.p).join("") };
++                out.push(resolved);
++                emitted.push(resolved);
++                confirmedWords.delete(v.word);
++                decided.delete(v.word);
++                rereadThrough.set(v.word, phones[phones.length - 1].end);
++            }
++        }
+         for (const [wi, issue] of issues) {
++            // Re-aligning the first attempt must not accuse it again.
++            if (rereadThrough.has(wi) && obs[issue.obsFrom]?.start <= rereadThrough.get(wi))
++                continue;
+             if (open.has(wi) || decided.has(wi))
+                 continue;
+             if (issue.cls === "skipped_passage" && overlapsConfirmedSkip(issue.word, issue.last))
+@@ -2738,7 +2767,8 @@ export function createChecker(index, options = {}) {
+             return out;
+         },
+         mistakes() {
+-            return emitted.filter((e) => e.state === "confirmed" || (policy.countResolved && e.state === "resolved"));
++            const latest = new Map(emitted.map(e => [e.id, e]));
++            return [...latest.values()].filter(e => e.state === "confirmed" || (policy.countResolved && e.state === "resolved"));
+         },
+     };
+ }

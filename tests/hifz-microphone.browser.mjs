@@ -56,11 +56,20 @@ try {
   assert.equal(await page.locator('#hz-word-1-2[data-review-word="confirmed"]').isVisible(), true);
   await page.getByRole('link', { name: /Mot à reprendre/ }).waitFor();
   assert.equal(await page.locator('#hz-word-1-2 + .practice-note').textContent(), 'Mot à reprendre');
+  await page.evaluate(() => {
+    const issue = { type: 'checker', id: 'reprise', errorClass: 'wrong_word', location: { surah: 114, ayah: 1, word: 3 } };
+    window.emitRecitation({ ...issue, state: 'confirmed' });
+    window.emitRecitation({ ...issue, state: 'resolved' });
+  });
+  assert.equal(await page.locator('#hz-word-1-3 + .practice-note').textContent(), 'Mot repris');
+  assert.equal(await page.locator('#hz-word-1-3').getAttribute('data-review-word'), null);
+  assert.equal(await page.getByRole('link', { name: /Mot à reprendre/ }).count(), 1);
   await finish.click();
   const retry = page.getByRole('button', { name: 'Réessayer' });
   await retry.waitFor();
   assert.match(await page.locator('hifz-microphone [role=status]').innerText(), /1 écart/);
   assert.equal(await audioMode(), 'playback');
+  assert.equal(await page.locator('#hz-word-1-3 + .practice-note').textContent(), 'Mot repris');
   await retry.click();
   await finish.waitFor();
   assert.equal(await page.locator('.practice-note').count(), 0);

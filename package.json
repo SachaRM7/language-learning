@@ -10,13 +10,15 @@
     "test": "node scripts/embed-assets.mjs && node --test tests/quran.test.mjs tests/pedagogy.test.mjs tests/roots-search.test.mjs",
     "test:browser": "node tests/quran.browser.mjs",
     "test:microphone": "node tests/hifz-microphone.browser.mjs",
-    "test:motion": "node tests/motion.browser.mjs"
+    "test:motion": "node tests/motion.browser.mjs",
+    "postinstall": "patch-package --error-on-fail"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",
     "@tilawa/core": "1.0.0-rc.1",
     "esbuild": "0.28.1",
-    "onnxruntime-web": "1.30.0"
+    "onnxruntime-web": "1.30.0",
+    "patch-package": "8.0.1"
   },
   "devDependencies": {
     "playwright": "^1.65.1",
