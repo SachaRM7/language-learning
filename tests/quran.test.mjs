@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { Messages } from '@anthropic-ai/sdk/resources/beta/messages/messages';
 import { handleQuranFr, handleQuranSurah } from '../worker/quran.js';
+import { decodePhonemes, assessFatiha } from '../public/js/quran/pronunciation.js';
 import { ASSETS } from '../worker/assets.generated.js';
 const read = file => JSON.parse(readFileSync(new URL(`../public/data/quran/${file}`, import.meta.url)));
 const index = read('index.json');
@@ -65,4 +66,22 @@ test('Al-Baqara : tranches complètes fusionnées, aucun cache partiel après é
     await assert.rejects(handleQuranFr(new Request('https://test/api/quran/fr?surah=2', { method: 'POST' }), failureEnv), { code: 'ai_truncated' });
     assert.equal(failureEnv.writes.length, 0);
   } finally { stub.mock.restore(); }
+});
+
+test('prononciation 1:2 · décodage CTC, variantes permises et abstention', () => {
+  const ids = [0, 6, 6, 0, 26, 30, 0, 30];
+  const scores = new Float32Array(ids.length * 43);
+  ids.forEach((id, i) => { scores[43 * i + id] = 1; });
+  assert.equal(decodePhonemes(scores), 'حهۦۦ');
+
+  const { ayahs } = JSON.parse(readFileSync(new URL('../node_modules/@tilawa/core/assets/ref-v2.json', import.meta.url)));
+  const reference = ayahs.find(v => v.s === 1 && v.a === 2).p;
+  for (const beats of [2, 4, 6]) {
+    assert.match(assessFatiha(reference.replace('ۦۦ', 'ۦ'.repeat(beats))).result, /Durée du madd final permise/);
+  }
+  assert.match(assessFatiha(reference.replace('ح', 'ه')).result, /reconnu ه/);
+  assert.match(assessFatiha(reference.replace('ۦۦ', 'ۦ')).result, /possiblement écourté/);
+  assert.match(assessFatiha(reference.replace('ۦۦ', 'ۦۦۦ')).result, /madd final incertaine/);
+  assert.match(assessFatiha(reference.slice(0, 8)).result, /Prise incertaine/);
+  assert.match(assessFatiha('').result, /Prise incertaine/);
 });

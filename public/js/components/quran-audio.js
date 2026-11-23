@@ -28,17 +28,17 @@ function _play(url, btn, rate = 1) {
     a.defaultPlaybackRate = rate;
     a.playbackRate = rate;
     setPlaying(btn, true);
-    const done = () => {
+    const done = (ended = false) => {
       if (_finish !== done) return;
       _finish = null;
       a.onended = a.onerror = a.onpause = null;
       setPlaying(btn, false);
-      resolve();
+      resolve(ended);
     };
     _finish = done;
-    a.onended = done;
-    a.onerror = done;
-    a.play().then(() => { a.onpause = () => { if (!a.ended) done(); }; }).catch(done);
+    a.onended = () => done(true);
+    a.onerror = () => done();
+    a.play().then(() => { a.onpause = () => { if (!a.ended) done(); }; }).catch(() => done());
   });
 }
 
