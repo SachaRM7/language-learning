@@ -38,6 +38,7 @@ import { renderCoranHifz } from './pages/coran-hifz.js';
 import { renderCoranReview } from './pages/coran-review.js';
 import { renderTajwidHome } from './pages/tajwid-home.js';
 import { renderTajwidLesson } from './pages/tajwid-lesson.js';
+import { renderCompte, renderPassword, renderAdmin } from './pages/compte.js';
 import { renderComprendre, renderComprendreSession } from './pages/comprendre.js';
 import { stopAudio, unlockRecitations } from './components/quran-audio.js';
 import { unlockAudio } from './audio.js';
@@ -96,6 +97,12 @@ async function init() {
   route('/coran/:n/verset/:v', renderCoranSurah);
   route('/coran/:n/hifz', renderCoranHifz);
   route('/coran/:n/hifz/:v', renderCoranHifz);
+
+  // Compte : connexion, inscription sur invitation, administration
+  route('/compte', renderCompte);
+  route('/compte/invitation/:code', renderCompte);
+  route('/compte/mot-de-passe', renderPassword);
+  route('/compte/admin', renderAdmin);
 
   // Tajwid : règles de récitation, niveau par niveau
   route('/tajwid', renderTajwidHome);

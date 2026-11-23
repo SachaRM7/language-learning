@@ -13,6 +13,7 @@ import { liveStreak, last7Days, todayXP, DAILY_GOAL_DEFAULT } from '../activity.
 import { playWord, ttsStatus } from '../audio.js';
 import { playUrl } from '../components/quran-audio.js';
 import { syncNow, syncStatus } from '../sync.js';
+import { confirmLogout } from './compte.js';
 import { escapeHtml } from '../utils.js';
 
 const $app = () => document.getElementById('app');
@@ -175,6 +176,7 @@ export async function renderProfil() {
 
   animateCount(document.getElementById('pf-xp'), xp, 700);
   _bindEvents(course);
+  document.getElementById('btn-logout')?.addEventListener('click', confirmLogout);
   document.getElementById('btn-sync')?.addEventListener('click', async e => {
     const btn = e.currentTarget;
     btn.classList.add('is-syncing');
@@ -335,15 +337,21 @@ async function _reset() {
 function _syncGroup() {
   const account = store.get('account');
   const st = syncStatus();
-  if (!account) {
+  const row = (ic, tint, label, hint, attrs = '', tag = 'div') => `
+    <${tag} class="set-row ${tag === 'button' ? 'set-row--btn' : ''}" ${attrs}>
+      <span class="set-row__icon" style="--tint:var(--${tint}-soft, var(--surface-2));--tint-ink:var(--${tint}, var(--ink-3))">${icon(ic)}</span>
+      <span class="set-row__text"><span class="set-row__label">${label}</span>${hint ? `<span class="set-row__hint">${hint}</span>` : ''}</span>
+    </${tag}>`;
+
+  if (!account || (account.via === 'access' && !account.account)) {
     return `
       <section class="set-group">
-        <h2 class="set-group__title">Synchronisation</h2>
+        <h2 class="set-group__title">Compte</h2>
         <div class="set-card">
-          <div class="set-row">
-            <span class="set-row__icon" style="--tint:var(--surface-2);--tint-ink:var(--ink-3)">${icon('monitor')}</span>
-            <span class="set-row__text"><span class="set-row__label">Mode local</span><span class="set-row__hint">Ta progression reste sur cet appareil. En ligne (Cloudflare), elle se synchronise entre tes appareils.</span></span>
-          </div>
+          ${account
+            ? row('user', 'primary', escapeHtml(account.email || ''), 'Connecté via Cloudflare Access · crée ton mot de passe pour pouvoir te passer d’Access')
+            : row('monitor', 'ink', 'Mode local', 'Ta progression reste sur cet appareil.')}
+          ${row('user', 'primary', account ? 'Créer mon mot de passe' : 'Se connecter ou créer un compte', account ? 'Ta progression reste rattachée à ton adresse.' : 'Synchronise ta progression et discute avec Karim. Inscription sur invitation.', 'data-navigate="/compte"', 'button')}
         </div>
       </section>`;
   }
@@ -351,18 +359,19 @@ function _syncGroup() {
   const hint = st.state === 'error' ? 'Dernière tentative échouée — nouvel essai automatique'
     : st.pending ? `${st.pending} modification(s) en attente · dernière synchro : ${last}`
     : `À jour · dernière synchro : ${last}`;
+  const session = account.via === 'session';
   return `
     <section class="set-group">
       <h2 class="set-group__title">Compte & synchronisation</h2>
       <div class="set-card">
-        <div class="set-row">
-          <span class="set-row__icon" style="--tint:var(--primary-soft);--tint-ink:var(--primary)">${icon('user')}</span>
-          <span class="set-row__text"><span class="set-row__label">${escapeHtml(account.email || '')}</span><span class="set-row__hint">Connecté via Cloudflare Access</span></span>
-        </div>
+        ${row('user', 'primary', escapeHtml(account.email || ''), session ? (account.admin ? 'Administrateur' : 'Compte HelloArabic') : 'Connecté via Cloudflare Access')}
         <button class="set-row set-row--btn" id="btn-sync">
           <span class="set-row__icon" style="--tint:var(--info-soft);--tint-ink:var(--info)">${icon('refresh-cw')}</span>
           <span class="set-row__text"><span class="set-row__label">Synchroniser maintenant</span><span class="set-row__hint">${hint}</span></span>
         </button>
+        ${account.admin ? row('link', 'gold', 'Invitations & comptes', 'Inviter quelqu’un, mot de passe provisoire', 'data-navigate="/compte/admin"', 'button') : ''}
+        ${session ? row('lock', 'violet', 'Changer mon mot de passe', '', 'data-navigate="/compte/mot-de-passe"', 'button') : ''}
+        ${session ? row('arrow-right', 'danger', 'Se déconnecter', '', 'id="btn-logout"', 'button') : ''}
       </div>
     </section>`;
 }

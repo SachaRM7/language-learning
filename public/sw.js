@@ -4,7 +4,7 @@
 //   - code (HTML/CSS/JS) et données JSON : network-first → les mises à jour arrivent immédiatement, cache en secours hors-ligne
 //   - images, polices, audio : stale-while-revalidate
 
-const CACHE_VERSION = 'v2.10.0';
+const CACHE_VERSION = 'v2.11.0';
 const CACHE_NAME = `helloarabic-${CACHE_VERSION}`;
 
 const PRECACHE_ASSETS = [
@@ -39,6 +39,9 @@ const PRECACHE_ASSETS = [
   'css/pages/tuteur.css',
   'css/pages/coran.css',
   'css/pages/tajwid.css',
+  'css/pages/compte.css',
+  'js/pages/compte.js',
+  'js/root-search.js',
   'js/tajwid.js',
   'js/quran/recitation.js',
   'js/quran/player-prefs.js',

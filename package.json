@@ -7,9 +7,10 @@
     "deploy": "wrangler deploy",
     "db:migrate:local": "wrangler d1 migrations apply helloarabic --local",
     "db:migrate": "wrangler d1 migrations apply helloarabic --remote",
-    "test": "node scripts/embed-assets.mjs && node --test tests/quran.test.mjs tests/pedagogy.test.mjs tests/roots-search.test.mjs",
+    "test": "node scripts/embed-assets.mjs && node --test tests/quran.test.mjs tests/pedagogy.test.mjs tests/roots-search.test.mjs tests/accounts.test.mjs",
     "test:browser": "node tests/quran.browser.mjs",
-    "test:motion": "node tests/motion.browser.mjs"
+    "test:motion": "node tests/motion.browser.mjs",
+    "test:accounts": "node tests/accounts.api.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0"

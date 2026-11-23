@@ -1,15 +1,27 @@
-// worker/auth.js — Identification via Cloudflare Access.
-// Access protège tout le domaine (connexion par code e-mail) et ajoute un JWT signé à chaque requête.
-// On revérifie ce JWT (signature RS256 + audience + émetteur + expiration) avant toute opération /api/*.
+// worker/auth.js — Identification : comptes HelloArabic (cookie de session, voir accounts.js) et,
+// pendant la transition, Cloudflare Access (code e-mail, JWT signé ajouté à chaque requête).
+// Le JWT Access est revérifié (signature RS256 + audience + émetteur + expiration).
+
+import { sessionUser } from './accounts.js';
 
 let _certs = { keys: null, fetchedAt: 0, team: '' };
 
+/**
+ * Utilisateur de la requête : session HelloArabic (cookie) d'abord, sinon Cloudflare Access
+ * (tant qu'Access protège le domaine). Renvoie null si personne n'est connecté.
+ */
 export async function authenticate(request, env) {
   // Développement local uniquement : `wrangler dev --var DEV_USER:moi@local`
   const host = new URL(request.url).hostname;
   if (env.DEV_USER && (host === 'localhost' || host === '127.0.0.1')) {
-    return { id: env.DEV_USER.toLowerCase(), email: env.DEV_USER };
+    return { id: env.DEV_USER.toLowerCase(), email: env.DEV_USER, via: 'dev' };
   }
+  const session = await sessionUser(request, env);
+  if (session) return session;
+  return accessUser(request, env);
+}
+
+async function accessUser(request, env) {
 
   const team = (env.ACCESS_TEAM_DOMAIN || '').replace(/^https?:\/\//, '').replace(/\/$/, '');
   if (!team || !env.ACCESS_AUD) return null;
@@ -40,7 +52,7 @@ export async function authenticate(request, env) {
   const valid = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, b64urlToBytes(s), new TextEncoder().encode(`${h}.${p}`));
   if (!valid || !payload.email) return null;
 
-  return { id: String(payload.email).toLowerCase(), email: payload.email };
+  return { id: String(payload.email).toLowerCase(), email: payload.email, via: 'access' };
 }
 
 async function findKey(team, kid) {

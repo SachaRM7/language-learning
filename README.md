@@ -24,8 +24,10 @@ wrangler.jsonc     configuration Cloudflare
   embarqué dans le Worker au build (`scripts/embed-assets.mjs`) et servi avec ETag : déploiement en une commande.
 - **Données** : *local-first*. Tout est dans IndexedDB et l'app marche hors-ligne ; `sync.js` envoie les
   modifications à D1 en arrière-plan et récupère celles des autres appareils.
-- **Connexion** : Cloudflare Access (code envoyé par e-mail) protège tout le domaine. L'app est privée,
-  et le Worker revérifie le JWT d'Access avant toute opération.
+- **Comptes** (`worker/accounts.js`, page `#/compte`) : inscription **sur invitation**, e-mail + mot de passe
+  (PBKDF2-SHA256), session par cookie `HttpOnly`. Sans compte, l'app reste utilisable (progression sur l'appareil) ;
+  le compte apporte la synchro et Karim. Pendant la transition, une connexion Cloudflare Access est aussi acceptée.
+  Voir « Comptes » plus bas.
 - **IA** : `POST /api/tutor` appelle Claude (`claude-opus-5-5`, effort `low`, repli automatique en cas de refus).
   La clé API reste un secret du Worker.
 
@@ -52,7 +54,33 @@ La base D1 (`helloarabic`) existe déjà et est référencée dans `wrangler.jso
    - reporter le domaine d'équipe (`<équipe>.cloudflareaccess.com`) et l'**Application Audience (AUD) Tag**
      dans `ACCESS_TEAM_DOMAIN` / `ACCESS_AUD` de `wrangler.jsonc`, puis redéployer.
 
-Sans Access configuré, l'API répond 401 et l'app fonctionne en mode local (sans synchro ni IA).
+## Comptes
+
+- **Lecture publique** : `/api/quran/surah`, `/api/quran/lemmas`, `/api/kazimirski/roots`, `GET /api/quran/fr`.
+- **Avec un compte** : `/api/sync`, `/api/tutor`, `POST /api/quran/fr` (génération IA), `/api/auth/password`.
+- **Administrateur** (`/api/admin/*`, page `#/compte/admin`) : créer / révoquer des invitations (lien
+  `#/compte/invitation/<CODE>`), voir les comptes, générer un mot de passe provisoire (aucun e-mail n'est envoyé ;
+  la personne doit le changer à la connexion suivante).
+- **Premier compte** : tant qu'aucun compte n'existe, l'adresse qui possède déjà des données synchronisées
+  (l'ancienne connexion Access) — ou `ADMIN_EMAIL` si défini — s'inscrit sans invitation et devient administrateur.
+  Son identifiant étant l'e-mail en minuscules, elle retrouve toute sa progression.
+- **Sécurité** : jetons de session stockés hachés, 365 jours glissants ; limitation des tentatives (10 par
+  e-mail et 30 par IP en 15 min pour la connexion, 10 inscriptions par IP et par heure) ; requêtes d'un autre
+  site refusées (`Origin`) ; cookie `SameSite=Lax`. `PASSWORD_ITERATIONS` (10 000 à 100 000, défaut 100 000)
+  règle le coût du hachage ; un compte est re-haché à sa connexion suivante.
+- **Appareil partagé** : les données locales appartiennent au dernier compte connecté. Un autre compte qui se
+  connecte repart des données de son compte (celles du précédent restent dans le sien). Une progression faite
+  sans compte rejoint le compte à la première connexion ; en cas de doublon, la version du compte l'emporte.
+- **Tests** : `npm test` (hachage) et `npm run test:accounts` (parcours complet, contre `wrangler dev` sur une
+  base locale ; voir l'en-tête de `tests/accounts.api.mjs`).
+
+### Bascule depuis Cloudflare Access
+
+1. `npm run db:migrate` (migration `0008_accounts.sql`, nouvelles tables seulement), puis `npm run deploy`.
+2. Encore derrière Access, ouvrir **Profil → Créer mon mot de passe** : le compte administrateur est créé
+   sur l'adresse Access, avec toute la progression.
+3. Vérifier la connexion par mot de passe (navigateur privé), puis seulement **retirer l'application
+   Cloudflare Access** (Zero Trust → Access → Applications). Le site devient public ; l'API protège le reste.
 
 ## Module Coran
 

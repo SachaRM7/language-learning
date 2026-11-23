@@ -57,11 +57,11 @@ export async function fetchFr(n, { generate = true } = {}) {
   const hit = cachedFr(n);
   if (hit) return hit;
   const account = store.get('account');
-  if (!account) return null;
   try {
+    // Lecture publique ; la génération (IA) demande un compte connecté
     let res = await fetch(`api/quran/fr?surah=${n}`, { credentials: 'same-origin' });
     if (res.status === 204) {
-      if (!generate || !account.ai) return null;
+      if (!generate || !account?.ai) return null;
       res = await fetch(`api/quran/fr?surah=${n}`, { method: 'POST', credentials: 'same-origin' });
     }
     if (!res.ok) return null;
@@ -96,7 +96,6 @@ export async function refreshLemmaFr() {
   const age = Date.now() - (cache?.at || 0);
   const complete = cache && cache.total && cache.done >= cache.total;
   if (cache && age < (complete ? 24 * 3600e3 : 5 * 60e3)) return 0;
-  if (!store.get('account')) return 0;
   try {
     const res = await fetch('api/quran/lemmas', { credentials: 'same-origin' });
     if (!res.ok) return 0;
@@ -149,7 +148,6 @@ export async function refreshKazimirski() {
   let cache = null;
   try { cache = JSON.parse(localStorage.getItem(KZ_CACHE)); } catch { /* vide */ }
   if (cache && Date.now() - (cache.at || 0) < 30 * 60e3) return false;
-  if (!store.get('account')) return false;
   try {
     const res = await fetch('api/kazimirski/roots', { credentials: 'same-origin' });
     if (!res.ok) return false;

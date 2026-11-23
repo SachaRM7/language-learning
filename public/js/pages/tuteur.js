@@ -67,10 +67,11 @@ function renderPicker(account, saved) {
           <div class="tt-offline card card--sunk">
             ${icon('info')}
             <div>
-              <strong>${account ? 'Clé API à configurer' : 'Disponible en ligne'}</strong>
+              <strong>${account ? 'Clé API à configurer' : 'Connecte-toi pour discuter avec Karim'}</strong>
               <p>${account
                 ? 'Ajoute le secret ANTHROPIC_API_KEY au Worker Cloudflare pour réveiller Karim.'
-                : 'Karim fonctionne quand l’app est servie par le Worker Cloudflare (pas en mode local).'}</p>
+                : 'Karim est réservé aux comptes HelloArabic (inscription sur invitation).'}</p>
+              ${account ? '' : `<button class="btn btn--primary btn--sm" data-navigate="/compte" style="margin-top:8px">${icon('user')} Se connecter</button>`}
             </div>
           </div>`}
 

@@ -8,6 +8,8 @@ import { store } from './store.js';
 const OUTBOX_KEY = 'ha-sync-outbox';     // { "store\u0001key": { at, deleted } }
 const CURSOR_KEY = 'ha-sync-cursor';
 const LAST_KEY = 'ha-sync-last';
+const OWNER_KEY = 'ha-sync-owner';     // compte auquel appartiennent les données de cet appareil
+const ADOPT_KEY = 'ha-sync-adopt';     // progression faite sans compte, à fusionner (le serveur l'emporte)
 const SEP = '\u0001';
 const DEBOUNCE_MS = 2500;
 const PERIOD_MS = 5 * 60 * 1000;
@@ -45,6 +47,7 @@ export async function initSync() {
     if (res.ok && (res.headers.get('content-type') || '').includes('application/json')) me = await res.json();
   } catch { /* hors-ligne ou serveur statique */ }
 
+  if (me?.email) await claimLocalData(me.email);
   store.set('account', me);
   _resolveAccount(me);
   _enabled = Boolean(me?.sync);
@@ -72,6 +75,9 @@ export function syncNow(opts = {}) {
 
 async function _doSync({ keepalive = false } = {}) {
   emit('syncing');
+  if (read(ADOPT_KEY, false)) {
+    try { await adoptAnonymous(); } catch (err) { emit('error', { error: err.message }); return { applied: 0 }; }
+  }
   const outbox = read(OUTBOX_KEY, {});
   const entries = Object.entries(outbox);
   const changes = [];
@@ -132,6 +138,70 @@ async function applyRemote(changes) {
   }
   if (prefsChanged) store.set('preferences', await db.getPreferences());
   return applied;
+}
+
+/**
+ * Les données locales appartiennent au dernier compte connecté sur cet appareil. Si un autre compte
+ * se connecte, elles sont effacées d'ici (elles restent dans le compte d'origine, déjà synchronisé).
+ * Une progression faite sans compte est conservée et rejoint le compte qui se connecte.
+ */
+async function claimLocalData(email) {
+  const id = email.toLowerCase();
+  const owner = read(OWNER_KEY, null);
+  if (owner === id) return;
+  if (owner) {
+    await wipeLocal();                    // données d'un autre compte : on repart du serveur
+  } else if (!read(LAST_KEY, null) && !read(CURSOR_KEY, 0)) {
+    write(ADOPT_KEY, true);               // progression faite sans compte : fusion prudente
+    write(CURSOR_KEY, 0);
+  }
+  // Sinon : appareil déjà synchronisé avec cette adresse (connexion Cloudflare Access) — rien à changer
+  write(OWNER_KEY, id);
+}
+
+/**
+ * Première synchro d'une progression faite sans compte : on récupère d'abord tout le compte,
+ * qui l'emporte en cas de doublon ; seuls les éléments absents du compte y sont ensuite ajoutés.
+ */
+async function adoptAnonymous() {
+  const res = await fetch('api/sync', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ since: 0, changes: [] }),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const body = await res.json();
+  const outbox = read(OUTBOX_KEY, {});
+  let prefsChanged = false;
+  for (const c of body.changes || []) {
+    delete outbox[`${c.store}${SEP}${c.key}`];
+    if (c.deleted) await db._deleteRaw(c.store, c.key);
+    else {
+      await db._putRaw(c.store, { ...c.data, _updatedAt: c.updated_at });
+      if (c.store === 'preferences') prefsChanged = true;
+    }
+  }
+  write(OUTBOX_KEY, outbox);
+  write(CURSOR_KEY, body.cursor ?? 0);
+  if (prefsChanged) store.set('preferences', await db.getPreferences());
+  try { localStorage.removeItem(ADOPT_KEY); } catch { /* ignore */ }
+  if ((body.changes || []).length) window.dispatchEvent(new CustomEvent('ha:remote-changes', { detail: { applied: body.changes.length } }));
+}
+
+async function wipeLocal() {
+  await db.resetProgress();
+  for (const k of [OUTBOX_KEY, CURSOR_KEY, LAST_KEY, ADOPT_KEY]) { try { localStorage.removeItem(k); } catch { /* ignore */ } }
+}
+
+/** Déconnexion : envoie d'abord ce qui reste, puis efface éventuellement la progression de l'appareil. */
+export async function logout({ wipe = false } = {}) {
+  try { await syncNow(); } catch { /* hors-ligne : la boîte d'envoi part à la prochaine connexion */ }
+  try { await fetch('api/auth/logout', { method: 'POST', credentials: 'same-origin' }); } catch { /* ignore */ }
+  if (wipe) {
+    await wipeLocal();
+    try { localStorage.removeItem(OWNER_KEY); } catch { /* ignore */ }
+  }
 }
 
 export function syncStatus() {
