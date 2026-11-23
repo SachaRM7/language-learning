@@ -1,6 +1,7 @@
 // js/pages/coran-surah.js — Une sourate : lecture mot à mot (chaque mot ouvre sa fiche), récitation synchronisée
 // (récitateurs, vitesses, tajwid, répétition, boucle), vocabulaire, accès à la mémorisation
 
+import { passagePath } from './coran-passage.js';
 import { store } from '../store.js';
 import { navigate } from '../router.js';
 import { renderHeader } from '../components/header.js';
@@ -82,8 +83,8 @@ function render() {
         </div>
         <div class="qs-hero__actions">
           <button class="btn btn--primary btn--lg" data-navigate="/coran/${surah.id}/hifz">${icon('play')} ${mem === surah.verses.length ? 'Revoir' : mem ? 'Continuer' : 'Mémoriser'}</button>
-          ${mem === surah.verses.length ? `<button class="btn btn--secondary btn--lg" data-navigate="/coran/${surah.id}/reciter/1/${mem}">Réciter toute la sourate</button>`
-            : lastGroup ? `<button class="btn btn--secondary btn--lg" data-navigate="/coran/${surah.id}/reciter/${lastGroup.n - 2}/${lastGroup.n}">Réciter les versets ${lastGroup.n - 2} à ${lastGroup.n}</button>` : ''}
+          ${mem === surah.verses.length ? `<button class="btn btn--secondary btn--lg" data-navigate="${passagePath(surah.id, 1, mem)}">Réciter toute la sourate</button>`
+            : lastGroup ? `<button class="btn btn--secondary btn--lg" data-navigate="${passagePath(surah.id, lastGroup.n - 2, lastGroup.n)}">Réciter les versets ${lastGroup.n - 2} à ${lastGroup.n}</button>` : ''}
           <button class="btn btn--secondary btn--lg" id="qs-listen">${icon('headphones')} Écouter</button>
         </div>
       </section>

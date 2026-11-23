@@ -6,22 +6,25 @@ const errors = [], requests = [];
 page.on('pageerror', e => errors.push(e.message));
 page.on('request', r => requests.push(r.url()));
 try {
+  await page.route('**/api/me', route => route.fulfill({ json: { sync: false } }));
   await page.goto('http://localhost:8787/#/coran');
   await page.waitForSelector('.qh-row');
   assert.equal(await page.locator('.qh-row').count(), 114);
   assert.equal(requests.filter(u => /api\/quran\/surah|surah-\d+\.json/.test(u)).length, 0);
   const stats = await page.locator('.qh-stats').innerText();
-  assert.match(stats, /6236/);
+  assert.match(stats, /0\s+verset mémorisé/);
   const result = await page.evaluate(async () => {
     const q = await import('/js/quran.js');
     const decks = await q.buildQuranDecks();
     const index = await q.loadQuranIndex();
     const meta = index.surahs.find(s => s.id === 2);
     const known = new Set(Object.keys(meta.lemmaCounts).slice(0, 20));
-    return { decks: decks.length, cards: decks.find(d => d.surah === 2).cards.length,
+    return { verses: index.surahs.reduce((sum, s) => sum + s.verses, 0),
+      decks: decks.length, cards: decks.find(d => d.surah === 2).cards.length,
       expected: meta.lemmas, comp: q.comprehension(meta, known),
       weighted: Math.round(Object.entries(meta.lemmaCounts).reduce((n, [l, count]) => n + (known.has(l) ? count : 0), 0) / meta.words * 100) };
   });
+  assert.equal(result.verses, 6236);
   assert.equal(result.decks, 114); assert.equal(result.cards, result.expected); assert.equal(result.comp, result.weighted);
   assert.equal(requests.filter(u => /api\/quran\/surah|surah-\d+\.json/.test(u)).length, 0);
   await page.screenshot({ path: '/tmp/quran-home.png', fullPage: false });
@@ -36,6 +39,21 @@ try {
   await page.locator('#hz-next').click();
   assert.match(await page.locator('.hz-steps .is-active').innerText(), /Masquer/);
   await page.screenshot({ path: '/tmp/quran-hifz.png' });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  for (const last of [3, 6]) {
+    await page.evaluate(async last => {
+      const { db } = await import('/js/db.js');
+      for (let n = last - 2; n <= last; n++) {
+        await db.saveLessonProgress('quran', `114:${n}`, { memorized: true });
+      }
+    }, last);
+    await page.goto('http://localhost:8787/#/coran/114');
+    const name = last === 3 ? 'Réciter les versets 1 à 3' : 'Réciter toute la sourate';
+    await page.getByRole('button', { name, exact: true }).click();
+    await page.getByRole('button', { name: 'Réciter au micro' }).waitFor();
+    assert.equal(new URL(page.url()).hash, `#/coran/114/reciter/1/${last}`);
+    assert.equal(await page.locator('.practice-verse').count(), last);
+  }
   assert.deepEqual(errors, []);
   for (const n of [0, 115, 'abc']) assert.equal((await page.request.get(`http://localhost:8787/api/quran/surah?n=${n}`)).status(), 400);
   console.log(JSON.stringify({ routes: ['#/coran', '#/coran/2', '#/coran/112/hifz'], stats, ...result, errors, surahRequests: requests.filter(u => /api\/quran\/surah/.test(u)) }, null, 2));
